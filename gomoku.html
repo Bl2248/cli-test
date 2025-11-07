@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .game-info {
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 0;
+            background-color: #DDB88C;
+            border: 2px solid #333;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .cell:hover {
+            background-color: rgba(255, 255, 0, 0.2);
+        }
+        
+        .cell::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background-color: #333;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .cell:nth-child(8n+1)::before,
+        .cell:nth-child(n+113):nth-child(-n+127)::before {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .cell:nth-child(113)::before {
+            width: 10px;
+            height: 10px;
+        }
+        
+        .black-stone {
+            width: 26px;
+            height: 26px;
+            background-color: #000;
+            border-radius: 50%;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+        }
+        
+        .white-stone {
+            width: 26px;
+            height: 26px;
+            background-color: #fff;
+            border-radius: 50%;
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+        }
+        
+        .controls {
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .win-message {
+            margin-top: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #d32f2f;
+            height: 30px;
+        }
+        
+        .last-move {
+            position: relative;
+        }
+        
+        .last-move::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #ff0000;
+            border-radius: 50%;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body>
+    <h1>五子棋游戏</h1>
+    <div class="game-info">
+        当前玩家: <span id="current-player">黑子</span>
+    </div>
+    <div class="game-container">
+        <div class="board" id="board"></div>
+        <div class="win-message" id="win-message"></div>
+        <div class="controls">
+            <button id="restart-btn">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        class GomokuGame {
+            constructor() {
+                this.boardSize = 15;
+                this.board = [];
+                this.currentPlayer = 'black'; // black or white
+                this.gameOver = false;
+                this.lastMove = null;
+                
+                this.initializeBoard();
+                this.renderBoard();
+                this.setupEventListeners();
+            }
+            
+            initializeBoard() {
+                this.board = [];
+                for (let i = 0; i < this.boardSize; i++) {
+                    this.board[i] = [];
+                    for (let j = 0; j < this.boardSize; j++) {
+                        this.board[i][j] = null;
+                    }
+                }
+            }
+            
+            renderBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                
+                for (let i = 0; i < this.boardSize; i++) {
+                    for (let j = 0; j < this.boardSize; j++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = i;
+                        cell.dataset.col = j;
+                        
+                        if (this.board[i][j] === 'black') {
+                            const stone = document.createElement('div');
+                            stone.className = 'black-stone';
+                            cell.appendChild(stone);
+                        } else if (this.board[i][j] === 'white') {
+                            const stone = document.createElement('div');
+                            stone.className = 'white-stone';
+                            cell.appendChild(stone);
+                        }
+                        
+                        // 标记最后一步
+                        if (this.lastMove && this.lastMove.row === i && this.lastMove.col === j) {
+                            cell.classList.add('last-move');
+                        }
+                        
+                        boardElement.appendChild(cell);
+                    }
+                }
+                
+                // 更新当前玩家显示
+                document.getElementById('current-player').textContent = 
+                    this.currentPlayer === 'black' ? '黑子' : '白子';
+            }
+            
+            setupEventListeners() {
+                const boardElement = document.getElementById('board');
+                boardElement.addEventListener('click', (e) => {
+                    if (this.gameOver) return;
+                    
+                    const cell = e.target.closest('.cell');
+                    if (!cell) return;
+                    
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    
+                    this.makeMove(row, col);
+                });
+                
+                document.getElementById('restart-btn').addEventListener('click', () => {
+                    this.restartGame();
+                });
+            }
+            
+            makeMove(row, col) {
+                // 检查位置是否为空
+                if (this.board[row][col] !== null) {
+                    return;
+                }
+                
+                // 放置棋子
+                this.board[row][col] = this.currentPlayer;
+                this.lastMove = { row, col };
+                
+                // 检查是否获胜
+                if (this.checkWin(row, col)) {
+                    this.gameOver = true;
+                    const winner = this.currentPlayer === 'black' ? '黑子' : '白子';
+                    document.getElementById('win-message').textContent = `游戏结束！${winner}获胜！`;
+                } else {
+                    // 切换玩家
+                    this.currentPlayer = this.currentPlayer === 'black' ? 'white' : 'black';
+                }
+                
+                this.renderBoard();
+            }
+            
+            checkWin(row, col) {
+                const player = this.board[row][col];
+                if (!player) return false;
+                
+                // 检查四个方向：水平、垂直、两个对角线
+                const directions = [
+                    [0, 1],  // 水平
+                    [1, 0],  // 垂直
+                    [1, 1],  // 对角线 \
+                    [1, -1]  // 对角线 /
+                ];
+                
+                for (const [dx, dy] of directions) {
+                    let count = 1; // 包括当前棋子
+                    
+                    // 正向检查
+                    for (let i = 1; i < 5; i++) {
+                        const r = row + dx * i;
+                        const c = col + dy * i;
+                        if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize && 
+                            this.board[r][c] === player) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // 反向检查
+                    for (let i = 1; i < 5; i++) {
+                        const r = row - dx * i;
+                        const c = col - dy * i;
+                        if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize && 
+                            this.board[r][c] === player) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // 如果有五子连珠
+                    if (count >= 5) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            restartGame() {
+                this.initializeBoard();
+                this.currentPlayer = 'black';
+                this.gameOver = false;
+                this.lastMove = null;
+                document.getElementById('win-message').textContent = '';
+                this.renderBoard();
+            }
+        }
+        
+        // 初始化游戏
+        document.addEventListener('DOMContentLoaded', () => {
+            new GomokuGame();
+        });
+    </script>
+</body>
+</html>
