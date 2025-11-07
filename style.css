@@ -1,0 +1,59 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+.container {
+    text-align: center;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.status {
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+#chessboard {
+    border: 2px solid #333;
+    background-color: #dcb35c;
+    cursor: pointer;
+}
+
+#restart-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#restart-btn:hover {
+    background-color: #45a049;
+}
+
+.hidden {
+    display: none;
+}
+
+#winner-message {
+    margin-top: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #e74c3c;
+}
