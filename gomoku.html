@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gomoku - Five in a Row</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 20px 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .player-turn {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .player-turn.black {
+            color: #333;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+        }
+
+        .player-turn.white {
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #restart-btn {
+            background: #2196F3;
+        }
+
+        #restart-btn:hover {
+            background: #0b7dda;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            gap: 0;
+            width: 90vmin;
+            height: 90vmin;
+            max-width: 600px;
+            max-height: 600px;
+            margin: 0 auto;
+            background: #DEB887;
+            border: 2px solid #8B4513;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #8B4513;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .cell:before {
+            content: '';
+            display: block;
+            padding-bottom: 100%;
+        }
+
+        .cell-inner {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stone {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .black.stone {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+
+        .white.stone {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border: 1px solid #999;
+        }
+
+        .win-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .win-message.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .win-content {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 90%;
+            width: 500px;
+        }
+
+        .win-content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .win-content p {
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+        }
+
+        .win-stone {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 10px;
+            vertical-align: middle;
+        }
+
+        .win-stone.black {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+
+        .win-stone.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border: 1px solid #999;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .game-info {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .player-turn {
+                font-size: 1.3rem;
+            }
+            
+            button {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+            
+            .win-content h2 {
+                font-size: 2rem;
+            }
+            
+            .win-content p {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gomoku - Five in a Row</h1>
+        
+        <div class="game-info">
+            <div class="player-turn black">Black's Turn</div>
+            <div class="controls">
+                <button id="undo-btn">Undo Move</button>
+                <button id="restart-btn">Restart Game</button>
+            </div>
+        </div>
+        
+        <div class="board" id="board"></div>
+    </div>
+    
+    <div class="win-message" id="win-message">
+        <div class="win-content">
+            <h2>Game Over!</h2>
+            <p>Player <span id="winner"></span> Wins!</p>
+            <button id="play-again-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        class GomokuGame {
+            constructor() {
+                this.boardSize = 15;
+                this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
+                this.currentPlayer = 1; // 1 for black, 2 for white
+                this.gameOver = false;
+                this.moveHistory = [];
+                
+                this.boardElement = document.getElementById('board');
+                this.playerTurnElement = document.querySelector('.player-turn');
+                this.winMessageElement = document.getElementById('win-message');
+                this.winnerElement = document.getElementById('winner');
+                
+                this.initializeBoard();
+                this.setupEventListeners();
+            }
+            
+            initializeBoard() {
+                this.boardElement.innerHTML = '';
+                for (let row = 0; row < this.boardSize; row++) {
+                    for (let col = 0; col < this.boardSize; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        
+                        const cellInner = document.createElement('div');
+                        cellInner.className = 'cell-inner';
+                        cell.appendChild(cellInner);
+                        
+                        this.boardElement.appendChild(cell);
+                    }
+                }
+            }
+            
+            setupEventListeners() {
+                this.boardElement.addEventListener('click', (e) => {
+                    if (this.gameOver) return;
+                    
+                    const cell = e.target.closest('.cell');
+                    if (!cell) return;
+                    
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    
+                    this.makeMove(row, col);
+                });
+                
+                document.getElementById('restart-btn').addEventListener('click', () => {
+                    this.restartGame();
+                });
+                
+                document.getElementById('undo-btn').addEventListener('click', () => {
+                    this.undoMove();
+                });
+                
+                document.getElementById('play-again-btn').addEventListener('click', () => {
+                    this.winMessageElement.classList.remove('show');
+                    this.restartGame();
+                });
+            }
+            
+            makeMove(row, col) {
+                if (this.board[row][col] !== 0) return;
+                if (this.gameOver) return;
+                
+                // Record move for undo functionality
+                this.moveHistory.push({row, col, player: this.currentPlayer});
+                
+                // Update board state
+                this.board[row][col] = this.currentPlayer;
+                
+                // Update UI
+                const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"] .cell-inner`);
+                const stone = document.createElement('div');
+                stone.className = `stone ${this.currentPlayer === 1 ? 'black' : 'white'}`;
+                cell.appendChild(stone);
+                
+                // Check for win
+                if (this.checkWin(row, col)) {
+                    this.gameOver = true;
+                    this.showWinMessage();
+                    return;
+                }
+                
+                // Switch player
+                this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+                this.updatePlayerTurn();
+            }
+            
+            undoMove() {
+                if (this.moveHistory.length === 0 || this.gameOver) return;
+                
+                const lastMove = this.moveHistory.pop();
+                this.board[lastMove.row][lastMove.col] = 0;
+                
+                // Remove stone from UI
+                const cell = document.querySelector(`.cell[data-row="${lastMove.row}"][data-col="${lastMove.col}"] .cell-inner`);
+                cell.innerHTML = '';
+                
+                // Switch player back
+                this.currentPlayer = lastMove.player;
+                this.updatePlayerTurn();
+            }
+            
+            updatePlayerTurn() {
+                this.playerTurnElement.textContent = `${this.currentPlayer === 1 ? 'Black' : 'White'}'s Turn`;
+                this.playerTurnElement.className = `player-turn ${this.currentPlayer === 1 ? 'black' : 'white'}`;
+            }
+            
+            checkWin(row, col) {
+                const player = this.board[row][col];
+                if (player === 0) return false;
+                
+                // Directions: horizontal, vertical, diagonal down-right, diagonal down-left
+                const directions = [
+                    [0, 1],   // right
+                    [1, 0],   // down
+                    [1, 1],   // down-right
+                    [1, -1]   // down-left
+                ];
+                
+                for (const [dx, dy] of directions) {
+                    let count = 1; // current stone
+                    
+                    // Check in positive direction
+                    for (let i = 1; i < 5; i++) {
+                        const r = row + dx * i;
+                        const c = col + dy * i;
+                        if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize && this.board[r][c] === player) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // Check in negative direction
+                    for (let i = 1; i < 5; i++) {
+                        const r = row - dx * i;
+                        const c = col - dy * i;
+                        if (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize && this.board[r][c] === player) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    if (count >= 5) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            showWinMessage() {
+                const winner = this.currentPlayer === 1 ? 'Black' : 'White';
+                this.winnerElement.innerHTML = `${winner} <div class="win-stone ${winner.toLowerCase()}"></div>`;
+                this.winMessageElement.classList.add('show');
+            }
+            
+            restartGame() {
+                this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
+                this.currentPlayer = 1;
+                this.gameOver = false;
+                this.moveHistory = [];
+                
+                this.initializeBoard();
+                this.updatePlayerTurn();
+                this.winMessageElement.classList.remove('show');
+            }
+        }
+        
+        // Initialize the game when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new GomokuGame();
+        });
+    </script>
+</body>
+</html>
