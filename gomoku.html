@@ -12,18 +12,27 @@
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         h1 {
-            color: #333;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 5px;
         }
         
         .game-info {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             font-size: 1.2em;
             color: #555;
+        }
+        
+        .score-board {
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            color: #666;
+            font-weight: bold;
         }
         
         .board {
@@ -31,9 +40,10 @@
             grid-template-columns: repeat(15, 30px);
             grid-template-rows: repeat(15, 30px);
             gap: 0;
-            background-color: #D2B48C;
-            border: 2px solid #8B4513;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(to bottom, #e6bc6d 0%, #d8a952 100%);
+            border: 3px solid #8B4513;
+            border-radius: 5px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
         }
         
         .cell {
@@ -46,6 +56,11 @@
             justify-content: center;
             cursor: pointer;
             position: relative;
+            transition: background-color 0.2s;
+        }
+        
+        .cell:hover {
+            background-color: rgba(139, 69, 19, 0.2);
         }
         
         .cell::before {
@@ -86,19 +101,21 @@
         .black-stone {
             width: 26px;
             height: 26px;
-            background: radial-gradient(circle at 30% 30%, #000, #333);
+            background: radial-gradient(circle at 30% 30%, #555, #000);
             border-radius: 50%;
             z-index: 2;
-            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            border: 1px solid #222;
         }
         
         .white-stone {
             width: 26px;
             height: 26px;
-            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            background: radial-gradient(circle at 30% 30%, #fff, #eee);
             border-radius: 50%;
             z-index: 2;
-            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            border: 1px solid #ccc;
         }
         
         .winning-stone {
@@ -111,36 +128,83 @@
             100% { transform: scale(1); }
         }
         
-        button {
+        .game-mode {
+            margin-bottom: 10px;
+        }
+        
+        .game-mode label {
+            font-size: 1.1em;
+            color: #2c3e50;
+            background-color: #ecf0f1;
+            padding: 8px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
             margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
             padding: 10px 20px;
             font-size: 1em;
-            background-color: #4CAF50;
+            background: linear-gradient(to bottom, #4CAF50, #45a049);
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         
         button:hover {
-            background-color: #45a049;
+            background: linear-gradient(to bottom, #45a049, #3d8b40);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            background: linear-gradient(to bottom, #cccccc, #aaaaaa);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
     <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
+    <div class="score-board" id="scoreBoard">黑子: 0 胜 | 白子: 0 胜</div>
     <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="game-mode">
+        <label>
+            <input type="checkbox" id="aiMode" onchange="toggleAIMode()"> 启用AI对手
+        </label>
+    </div>
+    <div class="controls">
+        <button onclick="resetGame()">重新开始</button>
+        <button onclick="undoMove()">悔棋</button>
+        <button onclick="resetScore()">重置分数</button>
+    </div>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 记录每一步棋
+        let scores = { black: 0, white: 0 }; // 记录胜负
+        let aiEnabled = false; // 是否启用AI
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
+        const scoreBoardElement = document.getElementById('scoreBoard');
+        const aiModeCheckbox = document.getElementById('aiMode');
         
         // 创建棋盘
         function createBoard() {
@@ -161,6 +225,9 @@
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
             
+            // 记录这一步棋
+            moveHistory.push({row, col, player: currentPlayer});
+            
             board[row][col] = currentPlayer;
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             
@@ -171,10 +238,25 @@
             if (checkWin(row, col)) {
                 gameOver = true;
                 highlightWinningStones(row, col);
+                
+                // 更新分数
+                if (currentPlayer === 1) {
+                    scores.black++;
+                } else {
+                    scores.white++;
+                }
+                
                 gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                updateScoreBoard();
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
-                gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+                if (aiEnabled && currentPlayer === 2 && !gameOver) {
+                    // AI回合
+                    gameInfoElement.textContent = 'AI正在思考...';
+                    setTimeout(makeAIMove, 500); // 延迟0.5秒使AI看起来在"思考"
+                } else {
+                    gameInfoElement.textContent = `当前玩家: ${aiEnabled ? (currentPlayer === 1 ? '黑子 (您)' : '白子 (AI)') : (currentPlayer === 1 ? '黑子' : '白子')}`;
+                }
             }
         }
         
@@ -280,12 +362,126 @@
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
-            gameInfoElement.textContent = '当前玩家: 黑子';
+            moveHistory = [];
+            if (aiEnabled) {
+                gameInfoElement.textContent = '当前玩家: 黑子 (您)';
+            } else {
+                gameInfoElement.textContent = '当前玩家: 黑子';
+            }
             createBoard();
+        }
+        
+        // 重置分数
+        function resetScore() {
+            scores = { black: 0, white: 0 };
+            updateScoreBoard();
+        }
+        
+        // 切换AI模式
+        function toggleAIMode() {
+            aiEnabled = aiModeCheckbox.checked;
+            if (aiEnabled) {
+                // AI模式下，黑子为玩家，白子为AI
+                gameInfoElement.textContent = '当前玩家: 黑子 (您)';
+            } else {
+                gameInfoElement.textContent = '当前玩家: 黑子';
+            }
+        }
+        
+        // 悔棋功能
+        function undoMove() {
+            // 如果游戏结束或没有棋子可悔，直接返回
+            if (gameOver || moveHistory.length === 0) return;
+            
+            // 获取最后一步棋的信息
+            const lastMove = moveHistory.pop();
+            const {row, col, player} = lastMove;
+            
+            // 清除棋盘上的棋子
+            board[row][col] = 0;
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            cell.innerHTML = '';
+            
+            // 切换当前玩家
+            currentPlayer = player;
+            gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+        }
+        
+        // 更新计分板
+        function updateScoreBoard() {
+            scoreBoardElement.textContent = `黑子: ${scores.black} 胜 | 白子: ${scores.white} 胜`;
+        }
+        
+        // AI移动
+        function makeAIMove() {
+            if (gameOver || currentPlayer !== 2) return;
+            
+            // 简单的AI策略：优先防守和进攻
+            let bestMove = null;
+            
+            // 遍历所有可能的位置
+            for (let i = 0; i < 15; i++) {
+                for (let j = 0; j < 15; j++) {
+                    if (board[i][j] === 0) {
+                        // 检查这个位置是否是好的选择
+                        if (!bestMove) {
+                            bestMove = { row: i, col: j };
+                        }
+                        
+                        // 简单AI：检查是否能形成5子连线或阻止对手连线
+                        // 评分当前空位
+                        if (isWinningMove(i, j, 2)) {
+                            // AI能赢的棋，优先级最高
+                            bestMove = { row: i, col: j };
+                            break;
+                        } else if (isWinningMove(i, j, 1)) {
+                            // 阻止玩家获胜，优先级次之
+                            bestMove = { row: i, col: j };
+                        } else if (hasAdjacentStones(i, j)) {
+                            // 附近有棋子的位置
+                            bestMove = { row: i, col: j };
+                        }
+                    }
+                }
+                if (bestMove && isWinningMove(bestMove.row, bestMove.col, 2)) {
+                    break; // 如果找到必赢棋，则停止搜索
+                }
+            }
+            
+            if (bestMove) {
+                placeStone(bestMove.row, bestMove.col);
+            }
+        }
+        
+        // 检查是否是获胜的移动
+        function isWinningMove(row, col, player) {
+            // 临时放置棋子
+            board[row][col] = player;
+            
+            // 检查是否有5子连线
+            let win = checkWin(row, col);
+            
+            // 恢复位置
+            board[row][col] = 0;
+            
+            return win;
+        }
+        
+        // 检查位置周围是否有棋子
+        function hasAdjacentStones(row, col) {
+            for (let i = Math.max(0, row-2); i <= Math.min(14, row+2); i++) {
+                for (let j = Math.max(0, col-2); j <= Math.min(14, col+2); j++) {
+                    if (board[i][j] !== 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
         
         // 初始化游戏
         createBoard();
+        updateScoreBoard();
     </script>
 </body>
 </html>
