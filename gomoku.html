@@ -21,9 +21,11 @@
         }
         
         .game-info {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-size: 1.2em;
             color: #555;
+            display: flex;
+            gap: 20px;
         }
         
         .board {
@@ -111,8 +113,15 @@
             100% { transform: scale(1); }
         }
         
-        button {
+        .controls {
             margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
             padding: 10px 20px;
             font-size: 1em;
             background-color: #4CAF50;
@@ -126,21 +135,96 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        #undoBtn {
+            background-color: #ff9800;
+        }
+        
+        #undoBtn:hover:not(:disabled) {
+            background-color: #e68900;
+        }
+        
+        #saveRecordBtn {
+            background-color: #2196F3;
+        }
+        
+        #saveRecordBtn:hover:not(:disabled) {
+            background-color: #0b7dda;
+        }
+        
+        .game-records {
+            margin-top: 20px;
+            width: 450px;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .game-records h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .record-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .record-item:last-child {
+            border-bottom: none;
+        }
+        
+        .clear-records-btn {
+            background-color: #f44336 !important;
+            margin-left: 10px;
+        }
+        
+        .clear-records-btn:hover:not(:disabled) {
+            background-color: #d32f2f !important;
+        }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
-    <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
+    <div class="game-info">
+        <div id="playerInfo">当前玩家: 黑子</div>
+        <div id="stepInfo">步数: 0</div>
+    </div>
     <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="controls">
+        <button onclick="resetGame()">重新开始</button>
+        <button id="undoBtn" onclick="undoMove()" disabled>悔棋</button>
+        <button id="saveRecordBtn" onclick="saveGameRecord()" disabled>保存记录</button>
+        <button class="clear-records-btn" onclick="clearGameRecords()">清空记录</button>
+    </div>
+    <div class="game-records">
+        <h3>游戏记录</h3>
+        <div id="recordsList"></div>
+    </div>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let stepCount = 0;
+        let moveHistory = []; // 记录每一步的落子位置
+        let gameRecords = []; // 记录整个游戏过程
         const boardElement = document.getElementById('board');
-        const gameInfoElement = document.getElementById('gameInfo');
+        const playerInfoElement = document.getElementById('playerInfo');
+        const stepInfoElement = document.getElementById('stepInfo');
+        const undoBtn = document.getElementById('undoBtn');
+        const saveRecordBtn = document.getElementById('saveRecordBtn');
+        const recordsListElement = document.getElementById('recordsList');
         
         // 创建棋盘
         function createBoard() {
@@ -161,21 +245,83 @@
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
             
+            // 记录当前状态用于悔棋
+            moveHistory.push({
+                row: row,
+                col: col,
+                player: currentPlayer,
+                board: JSON.parse(JSON.stringify(board))
+            });
+            
+            // 记录到游戏记录中
+            gameRecords.push({
+                step: stepCount + 1,
+                row: row,
+                col: col,
+                player: currentPlayer
+            });
+            
             board[row][col] = currentPlayer;
+            stepCount++;
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             
             const stone = document.createElement('div');
             stone.className = currentPlayer === 1 ? 'black-stone' : 'white-stone';
+            stone.dataset.row = row;
+            stone.dataset.col = col;
             cell.appendChild(stone);
+            
+            updateGameInfo();
             
             if (checkWin(row, col)) {
                 gameOver = true;
                 highlightWinningStones(row, col);
-                gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                playerInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                undoBtn.disabled = true;
+                saveRecordBtn.disabled = false;
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
-                gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+                updateGameInfo();
             }
+            
+            // 启用悔棋按钮
+            undoBtn.disabled = false;
+        }
+        
+        // 悔棋功能
+        function undoMove() {
+            if (moveHistory.length === 0) return;
+            
+            // 移除最后一步
+            const lastMove = moveHistory.pop();
+            const lastRecord = gameRecords.pop();
+            
+            // 恢复棋盘状态
+            board = lastMove.board;
+            currentPlayer = lastMove.player;
+            stepCount--;
+            
+            // 清除最后一步的棋子
+            const lastStone = document.querySelector(`.black-stone[data-row="${lastMove.row}"][data-col="${lastMove.col}"], .white-stone[data-row="${lastMove.row}"][data-col="${lastMove.col}"]`);
+            if (lastStone) {
+                lastStone.remove();
+            }
+            
+            // 更新游戏状态
+            gameOver = false;
+            updateGameInfo();
+            
+            // 如果没有可悔的棋步，禁用悔棋按钮
+            undoBtn.disabled = moveHistory.length === 0;
+            
+            // 禁用保存记录按钮（因为游戏未结束）
+            saveRecordBtn.disabled = true;
+        }
+        
+        // 更新游戏信息显示
+        function updateGameInfo() {
+            playerInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+            stepInfoElement.textContent = `步数: ${stepCount}`;
         }
         
         // 检查是否获胜
@@ -280,12 +426,75 @@
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
-            gameInfoElement.textContent = '当前玩家: 黑子';
+            stepCount = 0;
+            moveHistory = [];
+            gameRecords = [];
+            playerInfoElement.textContent = '当前玩家: 黑子';
+            stepInfoElement.textContent = '步数: 0';
+            undoBtn.disabled = true;
+            saveRecordBtn.disabled = true;
             createBoard();
+        }
+        
+        // 保存游戏记录
+        function saveGameRecord() {
+            if (gameRecords.length === 0) return;
+            
+            const gameResult = gameOver ? (currentPlayer === 1 ? '黑子' : '白子') : '未完成';
+            const record = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleString(),
+                steps: stepCount,
+                result: gameResult,
+                moves: [...gameRecords]
+            };
+            
+            // 保存到本地存储
+            let records = JSON.parse(localStorage.getItem('gomokuRecords') || '[]');
+            records.push(record);
+            localStorage.setItem('gomokuRecords', JSON.stringify(records));
+            
+            alert('游戏记录已保存！');
+            updateRecordsList();
+        }
+        
+        // 清空游戏记录
+        function clearGameRecords() {
+            if (confirm('确定要清空所有游戏记录吗？')) {
+                localStorage.removeItem('gomokuRecords');
+                updateRecordsList();
+            }
+        }
+        
+        // 更新记录列表显示
+        function updateRecordsList() {
+            const records = JSON.parse(localStorage.getItem('gomokuRecords') || '[]');
+            recordsListElement.innerHTML = '';
+            
+            if (records.length === 0) {
+                recordsListElement.innerHTML = '<p>暂无游戏记录</p>';
+                return;
+            }
+            
+            // 按时间倒序排列
+            records.sort((a, b) => b.id - a.id);
+            
+            records.forEach((record, index) => {
+                const recordElement = document.createElement('div');
+                recordElement.className = 'record-item';
+                recordElement.innerHTML = `
+                    <strong>第${records.length - index}局</strong> - 
+                    ${record.timestamp} - 
+                    ${record.steps}步 - 
+                    结果: ${record.result}
+                `;
+                recordsListElement.appendChild(recordElement);
+            });
         }
         
         // 初始化游戏
         createBoard();
+        updateRecordsList();
     </script>
 </body>
 </html>
