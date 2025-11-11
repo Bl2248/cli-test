@@ -21,9 +21,23 @@
         }
         
         .game-info {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             font-size: 1.2em;
             color: #555;
+        }
+        
+        .game-stats {
+            margin-bottom: 10px;
+            font-size: 1em;
+            color: #666;
+            display: flex;
+            gap: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
         }
         
         .board {
@@ -112,7 +126,6 @@
         }
         
         button {
-            margin-top: 20px;
             padding: 10px 20px;
             font-size: 1em;
             background-color: #4CAF50;
@@ -121,26 +134,71 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         
         button:hover {
             background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        #undoBtn {
+            background-color: #ff9800;
+        }
+        
+        #undoBtn:hover:not(:disabled) {
+            background-color: #e68900;
+        }
+        
+        .stone-placement {
+            animation: stonePlacement 0.3s ease-out;
+        }
+        
+        @keyframes stonePlacement {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
     <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
+    <div class="game-stats">
+        <div>总步数: <span id="moveCount">0</span></div>
+        <div>当前回合: <span id="roundCount">1</span></div>
+    </div>
+    <div class="controls">
+        <button onclick="resetGame()">重新开始</button>
+        <button id="undoBtn" onclick="undoMove()" disabled>悔棋</button>
+    </div>
     <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 记录移动历史
+        let moveCount = 0; // 总步数
+        let roundCount = 1; // 回合数
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
+        const undoBtn = document.getElementById('undoBtn');
+        const moveCountElement = document.getElementById('moveCount');
+        const roundCountElement = document.getElementById('roundCount');
         
         // 创建棋盘
         function createBoard() {
@@ -157,25 +215,152 @@
             }
         }
         
+        // 创建音效
+        function createAudioContext() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                return audioContext;
+            } catch (e) {
+                console.log('Web Audio API not supported');
+                return null;
+            }
+        }
+        
+        // 播放落子音效
+        function playStoneSound() {
+            if (!window.audioContext) {
+                window.audioContext = createAudioContext();
+            }
+            
+            if (window.audioContext) {
+                const oscillator = window.audioContext.createOscillator();
+                const gainNode = window.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(window.audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 300 + Math.random() * 200; // 随机频率
+                gainNode.gain.value = 0.1;
+                
+                oscillator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, window.audioContext.currentTime + 0.3);
+                oscillator.stop(window.audioContext.currentTime + 0.3);
+            }
+        }
+        
+        // 播放获胜音效
+        function playWinSound() {
+            if (!window.audioContext) {
+                window.audioContext = createAudioContext();
+            }
+            
+            if (window.audioContext) {
+                const oscillator = window.audioContext.createOscillator();
+                const gainNode = window.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(window.audioContext.destination);
+                
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.1;
+                
+                // 播放一个简单的旋律
+                oscillator.frequency.setValueAtTime(400, window.audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(500, window.audioContext.currentTime + 0.2);
+                oscillator.frequency.setValueAtTime(600, window.audioContext.currentTime + 0.4);
+                
+                oscillator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, window.audioContext.currentTime + 0.6);
+                oscillator.stop(window.audioContext.currentTime + 0.6);
+            }
+        }
+        
         // 落子
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
+            
+            // 记录移动历史
+            moveHistory.push({row, col, player: currentPlayer});
             
             board[row][col] = currentPlayer;
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             
             const stone = document.createElement('div');
-            stone.className = currentPlayer === 1 ? 'black-stone' : 'white-stone';
+            stone.className = currentPlayer === 1 ? 'black-stone stone-placement' : 'white-stone stone-placement';
+            stone.dataset.player = currentPlayer;
             cell.appendChild(stone);
+            
+            // 播放落子音效
+            playStoneSound();
+            
+            // 更新统计信息
+            moveCount++;
+            moveCountElement.textContent = moveCount;
+            
+            // 启用悔棋按钮
+            undoBtn.disabled = false;
             
             if (checkWin(row, col)) {
                 gameOver = true;
                 highlightWinningStones(row, col);
                 gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                undoBtn.disabled = true;
+                
+                // 播放获胜音效
+                playWinSound();
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
                 gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+                
+                // 每两个棋子算一个回合
+                if (moveCount % 2 === 0) {
+                    roundCount++;
+                    roundCountElement.textContent = roundCount;
+                }
             }
+        }
+        
+        // 悔棋
+        function undoMove() {
+            if (moveHistory.length === 0 || gameOver) return;
+            
+            // 获取最后两步（当前玩家和对手各一步）
+            const lastMove = moveHistory.pop();
+            if (!lastMove) return;
+            
+            // 清除最后一步
+            board[lastMove.row][lastMove.col] = 0;
+            const lastCell = document.querySelector(`.cell[data-row="${lastMove.row}"][data-col="${lastMove.col}"]`);
+            lastCell.innerHTML = '';
+            
+            // 更新统计信息
+            moveCount--;
+            moveCountElement.textContent = moveCount;
+            
+            // 如果还有前一步，也一并清除
+            if (moveHistory.length > 0) {
+                const prevMove = moveHistory.pop();
+                board[prevMove.row][prevMove.col] = 0;
+                const prevCell = document.querySelector(`.cell[data-row="${prevMove.row}"][data-col="${prevMove.col}"]`);
+                prevCell.innerHTML = '';
+                
+                // 恢复当前玩家为前一步的玩家
+                currentPlayer = prevMove.player;
+            } else {
+                // 如果没有前一步，恢复为黑子先手
+                currentPlayer = 1;
+            }
+            
+            // 更新游戏信息
+            gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+            
+            // 更新回合数
+            roundCount = Math.floor(moveCount / 2) + 1;
+            roundCountElement.textContent = roundCount;
+            
+            // 如果没有移动历史了，禁用悔棋按钮
+            undoBtn.disabled = moveHistory.length === 0;
         }
         
         // 检查是否获胜
@@ -280,7 +465,13 @@
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
+            moveHistory = [];
+            moveCount = 0;
+            roundCount = 1;
             gameInfoElement.textContent = '当前玩家: 黑子';
+            moveCountElement.textContent = moveCount;
+            roundCountElement.textContent = roundCount;
+            undoBtn.disabled = true;
             createBoard();
         }
         
