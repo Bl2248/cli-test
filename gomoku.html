@@ -12,18 +12,67 @@
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
         }
         
         h1 {
             color: #333;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
         }
         
         .game-info {
             margin-bottom: 20px;
             font-size: 1.2em;
             color: #555;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 游戏结束弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+        }
+        
+        .modal-content h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .modal-content button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .modal-content button:hover {
+            background-color: #45a049;
         }
         
         .board {
@@ -83,6 +132,23 @@
             left: 50%;
         }
         
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #8B4513;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.3s;
+        }
+        
+        .cell:hover {
+            background-color: rgba(139, 69, 19, 0.2);
+        }
+        
         .black-stone {
             width: 26px;
             height: 26px;
@@ -90,6 +156,7 @@
             border-radius: 50%;
             z-index: 2;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            animation: appear 0.3s ease-out;
         }
         
         .white-stone {
@@ -99,10 +166,17 @@
             border-radius: 50%;
             z-index: 2;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            animation: appear 0.3s ease-out;
         }
         
         .winning-stone {
             animation: pulse 1s infinite;
+        }
+        
+        @keyframes appear {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
         
         @keyframes pulse {
@@ -111,8 +185,12 @@
             100% { transform: scale(1); }
         }
         
-        button {
+        .controls {
             margin-top: 20px;
+        }
+        
+        .controls button {
+            margin: 0 10px;
             padding: 10px 20px;
             font-size: 1em;
             background-color: #4CAF50;
@@ -123,22 +201,41 @@
             transition: background-color 0.3s;
         }
         
-        button:hover {
+        .controls button:hover {
             background-color: #45a049;
+        }
+        
+        .controls button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
-    <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
+    <div class="game-info" id="gameInfo">当前玩家: 黑子 (共0步)</div>
     <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="controls">
+        <button onclick="resetGame()">重新开始</button>
+        <button onclick="undoMove()">悔棋</button>
+    </div>
+    
+    <!-- 游戏结束弹窗 -->
+    <div id="winModal" class="modal">
+        <div class="modal-content">
+            <h2>游戏结束</h2>
+            <p id="winnerText">玩家获胜!</p>
+            <button onclick="closeAndRestart()">再玩一局</button>
+            <button onclick="document.getElementById('winModal').style.display='none'">继续观战</button>
+        </div>
+    </div>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 记录落子历史，用于悔棋
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
         
@@ -152,6 +249,8 @@
                     cell.dataset.row = i;
                     cell.dataset.col = j;
                     cell.addEventListener('click', () => placeStone(i, j));
+            cell.addEventListener('mouseenter', () => highlightPossibleMove(i, j));
+            cell.addEventListener('mouseleave', () => removeHighlight(i, j));
                     boardElement.appendChild(cell);
                 }
             }
@@ -162,6 +261,8 @@
             if (board[row][col] !== 0 || gameOver) return;
             
             board[row][col] = currentPlayer;
+            moveHistory.push({row, col, player: currentPlayer}); // 记录落子历史
+            
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             
             const stone = document.createElement('div');
@@ -171,10 +272,11 @@
             if (checkWin(row, col)) {
                 gameOver = true;
                 highlightWinningStones(row, col);
-                gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜! (共${moveHistory.length}步)`;
+                showWinModal(currentPlayer);
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
-                gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+                gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'} (共${moveHistory.length}步)`;
             }
         }
         
@@ -280,8 +382,61 @@
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
-            gameInfoElement.textContent = '当前玩家: 黑子';
+            moveHistory = [];
+            gameInfoElement.textContent = '当前玩家: 黑子 (共0步)';
             createBoard();
+        }
+        
+        // 悔棋功能
+        function undoMove() {
+            if (gameOver || moveHistory.length === 0) return;
+            
+            // 获取最后一步
+            const lastMove = moveHistory.pop();
+            const {row, col, player} = lastMove;
+            
+            // 清除棋盘上的棋子
+            board[row][col] = 0;
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            const stone = cell.querySelector('.black-stone, .white-stone');
+            if (stone) {
+                stone.remove();
+            }
+            
+            // 切换当前玩家（回到上一步的玩家）
+            currentPlayer = player;
+            gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'} (共${moveHistory.length}步)`;
+        }
+        
+        // 高亮显示可能的落子位置
+        function highlightPossibleMove(row, col) {
+            if (board[row][col] !== 0 || gameOver) return;
+            
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            cell.style.backgroundColor = currentPlayer === 1 ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.3)';
+        }
+        
+        // 移除高亮显示
+        function removeHighlight(row, col) {
+            if (board[row][col] !== 0) return;
+            
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            cell.style.backgroundColor = '';
+        }
+        
+        // 显示获胜弹窗
+        function showWinModal(winner) {
+            const modal = document.getElementById('winModal');
+            const winnerText = document.getElementById('winnerText');
+            winnerText.textContent = `${winner === 1 ? '黑子' : '白子'} 获胜!`;
+            modal.style.display = 'flex';
+        }
+        
+        // 关闭弹窗并重新开始游戏
+        function closeAndRestart() {
+            const modal = document.getElementById('winModal');
+            modal.style.display = 'none';
+            resetGame();
         }
         
         // 初始化游戏
