@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .game-info {
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 0;
+            border: 2px solid #333;
+            background-color: #dcb35c;
+            position: relative;
+        }
+        
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #000;
+            box-sizing: border-box;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .cell:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .cell.black::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: black;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .cell.white::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #000;
+        }
+        
+        .controls {
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>五子棋游戏</h1>
+    <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
+    <div class="board" id="board"></div>
+    <div class="controls">
+        <button id="resetBtn">重新开始</button>
+    </div>
+
+    <script>
+        // 游戏状态变量
+        let currentPlayer = 'black';
+        let gameBoard = Array(15).fill().map(() => Array(15).fill(null));
+        let gameActive = true;
+        
+        // 创建棋盘
+        const board = document.getElementById('board');
+        const gameInfo = document.getElementById('gameInfo');
+        const resetBtn = document.getElementById('resetBtn');
+        
+        // 初始化棋盘
+        function initBoard() {
+            board.innerHTML = '';
+            for (let i = 0; i < 15; i++) {
+                for (let j = 0; j < 15; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', () => handleCellClick(i, j));
+                    board.appendChild(cell);
+                }
+            }
+        }
+        
+        // 处理点击事件
+        function handleCellClick(row, col) {
+            if (!gameActive || gameBoard[row][col] !== null) return;
+            
+            // 在游戏板上放置棋子
+            gameBoard[row][col] = currentPlayer;
+            
+            // 更新UI
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            cell.classList.add(currentPlayer);
+            
+            // 检查胜利条件
+            if (checkWin(row, col)) {
+                gameInfo.textContent = `游戏结束! ${currentPlayer === 'black' ? '黑子' : '白子'} 获胜!`;
+                gameActive = false;
+                return;
+            }
+            
+            // 切换玩家
+            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+            gameInfo.textContent = `当前玩家: ${currentPlayer === 'black' ? '黑子' : '白子'}`;
+        }
+        
+        // 检查胜利条件
+        function checkWin(row, col) {
+            const directions = [
+                [0, 1],   // 水平
+                [1, 0],   // 垂直
+                [1, 1],   // 对角线 \
+                [1, -1]   // 对角线 /
+            ];
+            
+            for (let [dx, dy] of directions) {
+                let count = 1; // 包含当前棋子
+                
+                // 正方向检查
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row + dx * i;
+                    const newCol = col + dy * i;
+                    if (newRow >= 0 && newRow < 15 && newCol >= 0 && newCol < 15 && 
+                        gameBoard[newRow][newCol] === currentPlayer) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 反方向检查
+                for (let i = 1; i < 5; i++) {
+                    const newRow = row - dx * i;
+                    const newCol = col - dy * i;
+                    if (newRow >= 0 && newRow < 15 && newCol >= 0 && newCol < 15 && 
+                        gameBoard[newRow][newCol] === currentPlayer) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (count >= 5) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        // 重置游戏
+        function resetGame() {
+            gameBoard = Array(15).fill().map(() => Array(15).fill(null));
+            currentPlayer = 'black';
+            gameActive = true;
+            gameInfo.textContent = '当前玩家: 黑子';
+            initBoard();
+        }
+        
+        // 绑定重置按钮事件
+        resetBtn.addEventListener('click', resetGame);
+        
+        // 初始化游戏
+        initBoard();
+    </script>
+</body>
+</html>
