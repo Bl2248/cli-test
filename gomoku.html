@@ -12,18 +12,32 @@
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #f0f0f0, #e0e0e0);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         h1 {
             color: #333;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
         
         .game-info {
             margin-bottom: 20px;
             font-size: 1.2em;
             color: #555;
+            font-weight: bold;
+            height: 24px;
         }
         
         .board {
@@ -32,8 +46,9 @@
             grid-template-rows: repeat(15, 30px);
             gap: 0;
             background-color: #D2B48C;
-            border: 2px solid #8B4513;
+            border: 3px solid #8B4513;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            position: relative;
         }
         
         .cell {
@@ -58,29 +73,13 @@
             z-index: 1;
         }
         
-        .cell:nth-child(15n+1)::before {
-            left: 50%;
-            top: 50%;
-        }
-        
-        .cell:nth-child(15n+15)::before {
-            right: 50%;
-            top: 50%;
-        }
-        
-        .cell:first-child::before,
-        .cell:nth-child(225)::before {
-            display: none;
-        }
-        
-        .cell:nth-child(n+1):nth-child(-n+15)::before {
-            top: 50%;
-            left: 50%;
-        }
-        
-        .cell:nth-child(n+211):nth-child(-n+225)::before {
-            bottom: 50%;
-            left: 50%;
+        /* 星位坐标: (4,4), (4,12), (12,4), (12,12), (8,8) - 转换为1-15索引 */
+        .cell[data-row="3"][data-col="3"]::before,
+        .cell[data-row="3"][data-col="11"]::before,
+        .cell[data-row="11"][data-col="3"]::before,
+        .cell[data-row="11"][data-col="11"]::before,
+        .cell[data-row="7"][data-col="7"]::before {
+            background-color: #000;
         }
         
         .black-stone {
@@ -90,6 +89,7 @@
             border-radius: 50%;
             z-index: 2;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s ease;
         }
         
         .white-stone {
@@ -99,10 +99,12 @@
             border-radius: 50%;
             z-index: 2;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s ease;
         }
         
         .winning-stone {
             animation: pulse 1s infinite;
+            box-shadow: 0 0 8px 3px rgba(255, 215, 0, 0.8);
         }
         
         @keyframes pulse {
@@ -111,8 +113,13 @@
             100% { transform: scale(1); }
         }
         
-        button {
+        .controls {
             margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
             padding: 10px 20px;
             font-size: 1em;
             background-color: #4CAF50;
@@ -126,21 +133,46 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .status-bar {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            width: 100%;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
-    <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
-    <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="game-container">
+        <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
+        <div class="board" id="board"></div>
+        <div class="controls">
+            <button onclick="resetGame()">重新开始</button>
+            <button onclick="undoMove()">悔棋</button>
+        </div>
+        <div class="status-bar">
+            <span id="status">游戏进行中...</span>
+        </div>
+    </div>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 用于悔棋功能
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
+        const statusElement = document.getElementById('status');
         
         // 创建棋盘
         function createBoard() {
@@ -161,6 +193,14 @@
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
             
+            // 记录当前状态到历史记录
+            moveHistory.push({
+                row: row,
+                col: col,
+                player: currentPlayer,
+                board: JSON.parse(JSON.stringify(board))
+            });
+            
             board[row][col] = currentPlayer;
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             
@@ -172,9 +212,11 @@
                 gameOver = true;
                 highlightWinningStones(row, col);
                 gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                statusElement.textContent = `恭喜 ${currentPlayer === 1 ? '黑子' : '白子'} 玩家获胜！`;
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
                 gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+                statusElement.textContent = `轮到 ${currentPlayer === 1 ? '黑子' : '白子'} 了`;
             }
         }
         
@@ -280,8 +322,38 @@
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
+            moveHistory = [];
             gameInfoElement.textContent = '当前玩家: 黑子';
+            statusElement.textContent = '游戏进行中...';
             createBoard();
+        }
+        
+        // 悔棋功能
+        function undoMove() {
+            if (gameOver || moveHistory.length === 0) return;
+            
+            const lastMove = moveHistory.pop();
+            const { row, col } = lastMove;
+            
+            // 恢复到上一步的状态
+            board = JSON.parse(JSON.stringify(lastMove.board));
+            currentPlayer = lastMove.player;
+            
+            // 更新UI
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            if (cell) {
+                cell.innerHTML = '';
+            }
+            
+            gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+            statusElement.textContent = `轮到 ${currentPlayer === 1 ? '黑子' : '白子'} 了`;
+            
+            // 移除可能的获胜高亮
+            document.querySelectorAll('.winning-stone').forEach(stone => {
+                stone.classList.remove('winning-stone');
+            });
+            
+            gameOver = false;
         }
         
         // 初始化游戏
