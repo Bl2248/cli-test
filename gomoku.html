@@ -12,12 +12,17 @@
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, #f9f9f9, #e0e0e0);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            box-sizing: border-box;
         }
         
         h1 {
-            color: #333;
+            color: #5D4037;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            margin-bottom: 10px;
+            font-size: 2.2em;
         }
         
         .game-info {
@@ -28,18 +33,23 @@
         
         .board {
             display: grid;
-            grid-template-columns: repeat(15, 30px);
-            grid-template-rows: repeat(15, 30px);
+            grid-template-columns: repeat(15, 32px);
+            grid-template-rows: repeat(15, 32px);
             gap: 0;
-            background-color: #D2B48C;
-            border: 2px solid #8B4513;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            background: #DEB887;
+            background-image: 
+                linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+            background-size: 32px 32px;
+            border: 3px solid #8B4513;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+            padding: 5px;
         }
         
         .cell {
-            width: 30px;
-            height: 30px;
-            border: 1px solid #8B4513;
+            width: 32px;
+            height: 32px;
             box-sizing: border-box;
             display: flex;
             align-items: center;
@@ -48,57 +58,41 @@
             position: relative;
         }
         
-        .cell::before {
+        /* 星位标记 */
+        .cell.star-point::before {
             content: "";
             position: absolute;
-            width: 6px;
-            height: 6px;
-            background-color: #8B4513;
+            width: 8px;
+            height: 8px;
+            background-color: #5D4037;
             border-radius: 50%;
             z-index: 1;
         }
         
-        .cell:nth-child(15n+1)::before {
-            left: 50%;
-            top: 50%;
-        }
-        
-        .cell:nth-child(15n+15)::before {
-            right: 50%;
-            top: 50%;
-        }
-        
-        .cell:first-child::before,
-        .cell:nth-child(225)::before {
-            display: none;
-        }
-        
-        .cell:nth-child(n+1):nth-child(-n+15)::before {
-            top: 50%;
-            left: 50%;
-        }
-        
-        .cell:nth-child(n+211):nth-child(-n+225)::before {
-            bottom: 50%;
-            left: 50%;
-        }
-        
         .black-stone {
-            width: 26px;
-            height: 26px;
-            background: radial-gradient(circle at 30% 30%, #000, #333);
+            width: 28px;
+            height: 28px;
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+            border: 1px solid #222;
             border-radius: 50%;
             z-index: 2;
-            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            box-shadow: 
+                1px 1px 3px rgba(0, 0, 0, 0.5),
+                inset -2px -2px 3px rgba(0, 0, 0, 0.5),
+                inset 2px 2px 3px rgba(255, 255, 255, 0.2);
         }
         
         .white-stone {
-            width: 26px;
-            height: 26px;
+            width: 28px;
+            height: 28px;
             background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border: 1px solid #999;
             border-radius: 50%;
             z-index: 2;
-            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            box-shadow: 
+                1px 1px 3px rgba(0, 0, 0, 0.3),
+                inset -2px -2px 3px rgba(0, 0, 0, 0.1),
+                inset 2px 2px 3px rgba(255, 255, 255, 0.8);
         }
         
         .winning-stone {
@@ -126,31 +120,95 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        .game-history {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            width: 450px;
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+        }
+        
+        .move-record {
+            padding: 2px 0;
+            font-size: 0.9em;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
     <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
+    <div class="game-history" id="gameHistory"></div>
     <div class="board" id="board"></div>
     <button onclick="resetGame()">重新开始</button>
+    <button onclick="undoMove()">悔棋</button>
+    
+    <!-- 音效元素 -->
+    <div id="audioContainer" style="display: none;"></div>
 
     <script>
+        // 音效生成函数
+        function playSound(frequency, duration, type) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.type = type || 'sine';
+                oscillator.frequency.value = frequency;
+                gainNode.gain.value = 0.3;
+                
+                oscillator.start();
+                
+                // 渐弱效果
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration / 1000);
+                
+                setTimeout(() => {
+                    oscillator.stop();
+                }, duration);
+            } catch (e) {
+                // 如果浏览器不支持Web Audio API，静默失败
+                console.log("浏览器不支持Web Audio API");
+            }
+        }
+        
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 记录落子历史
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
         
         // 创建棋盘
         function createBoard() {
             boardElement.innerHTML = '';
+            // 定义星位坐标 (天元和四个角星)
+            const starPoints = [
+                [3, 3], [3, 11],
+                [7, 7],
+                [11, 3], [11, 11]
+            ];
+            
             for (let i = 0; i < 15; i++) {
                 for (let j = 0; j < 15; j++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
                     cell.dataset.row = i;
                     cell.dataset.col = j;
+                    
+                    // 添加星位标记
+                    if (starPoints.some(point => point[0] === i && point[1] === j)) {
+                        cell.classList.add('star-point');
+                    }
+                    
                     cell.addEventListener('click', () => placeStone(i, j));
                     boardElement.appendChild(cell);
                 }
@@ -168,10 +226,24 @@
             stone.className = currentPlayer === 1 ? 'black-stone' : 'white-stone';
             cell.appendChild(stone);
             
+            // 播放落子音效
+            playSound(523.25, 100, 'sine'); // C5音调，持续100毫秒
+            
+            // 记录落子历史
+            const moveNumber = moveHistory.length + 1;
+            moveHistory.push({row, col, player: currentPlayer, moveNumber});
+            
+            // 更新游戏记录显示
+            updateGameHistory(row, col, currentPlayer, moveNumber);
+            
             if (checkWin(row, col)) {
                 gameOver = true;
                 highlightWinningStones(row, col);
-                gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                const winner = currentPlayer === 1 ? '黑子' : '白子';
+                gameInfoElement.innerHTML = `<span style="color: ${currentPlayer === 1 ? '#000' : '#666'}; font-weight: bold;">游戏结束! ${winner} 获胜!</span>`;
+                // 播放胜利音效
+                playSound(783.99, 300, 'sine'); // G5音调，持续300毫秒
+                setTimeout(() => playSound(1046.50, 500, 'sine'), 300); // C6音调，持续500毫秒
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
                 gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
@@ -275,13 +347,66 @@
             });
         }
         
+        // 更新游戏记录显示
+        function updateGameHistory(row, col, player, moveNumber) {
+            const historyElement = document.getElementById('gameHistory');
+            const moveRecord = document.createElement('div');
+            moveRecord.className = 'move-record';
+            moveRecord.textContent = `第${moveNumber}手: ${player === 1 ? '黑子' : '白子'} 落子于 (${row+1}, ${col+1})`;
+            historyElement.appendChild(moveRecord);
+            // 滚动到最新记录
+            historyElement.scrollTop = historyElement.scrollHeight;
+        }
+        
+        // 悔棋功能
+        function undoMove() {
+            if (gameOver || moveHistory.length === 0) return;
+            
+            // 获取最后一步棋
+            const lastMove = moveHistory.pop();
+            const {row, col, player} = lastMove;
+            
+            // 恢复棋盘状态
+            board[row][col] = 0;
+            
+            // 从DOM中移除棋子
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            const stone = cell.querySelector('.black-stone, .white-stone');
+            if (stone) {
+                cell.removeChild(stone);
+            }
+            
+            // 切换当前玩家
+            currentPlayer = player;
+            gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+            
+            // 重置游戏结束状态
+            gameOver = false;
+            
+            // 更新游戏记录显示
+            const historyElement = document.getElementById('gameHistory');
+            if (historyElement.lastChild) {
+                historyElement.removeChild(historyElement.lastChild);
+            }
+            
+            // 播放悔棋音效
+            playSound(440, 150, 'sine'); // A4音调，持续150毫秒
+        }
+        
         // 重新开始游戏
         function resetGame() {
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
+            moveHistory = [];
             gameInfoElement.textContent = '当前玩家: 黑子';
+            document.getElementById('gameHistory').innerHTML = '';
             createBoard();
+            
+            // 播放重新开始音效
+            playSound(523.25, 100, 'sine'); // C5音调
+            setTimeout(() => playSound(659.25, 100, 'sine'), 100); // E5音调
+            setTimeout(() => playSound(783.99, 100, 'sine'), 200); // G5音调
         }
         
         // 初始化游戏
