@@ -34,6 +34,7 @@
             background-color: #D2B48C;
             border: 2px solid #8B4513;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            position: relative;
         }
         
         .cell {
@@ -111,8 +112,13 @@
             100% { transform: scale(1); }
         }
         
-        button {
+        .controls {
             margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
             padding: 10px 20px;
             font-size: 1em;
             background-color: #4CAF50;
@@ -126,13 +132,40 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        button.undo {
+            background-color: #f44336;
+        }
+        
+        button.undo:hover {
+            background-color: #d32f2f;
+        }
+        
+        .win-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            z-index: 100;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
     <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
     <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="controls">
+        <button onclick="resetGame()">重新开始</button>
+        <button class="undo" onclick="undoMove()">悔棋</button>
+    </div>
+    
+    <div class="win-message" id="winMessage"></div>
 
     <script>
         // 初始化游戏状态
@@ -141,6 +174,10 @@
         let gameOver = false;
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
+        const winMessageElement = document.getElementById('winMessage');
+        
+        // 记录每步棋的位置，用于悔棋功能
+        let moveHistory = [];
         
         // 创建棋盘
         function createBoard() {
@@ -161,17 +198,28 @@
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
             
+            // 记录当前步骤
+            moveHistory.push({
+                row: row,
+                col: col,
+                player: currentPlayer
+            });
+            
             board[row][col] = currentPlayer;
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             
             const stone = document.createElement('div');
             stone.className = currentPlayer === 1 ? 'black-stone' : 'white-stone';
+            stone.dataset.row = row;
+            stone.dataset.col = col;
             cell.appendChild(stone);
             
             if (checkWin(row, col)) {
                 gameOver = true;
                 highlightWinningStones(row, col);
-                gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                const winner = currentPlayer === 1 ? '黑子' : '白子';
+                showWinMessage(`游戏结束! ${winner} 获胜!`);
+                gameInfoElement.textContent = `游戏结束! ${winner} 获胜!`;
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
                 gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
@@ -275,12 +323,42 @@
             });
         }
         
+        // 显示获胜信息
+        function showWinMessage(message) {
+            winMessageElement.textContent = message;
+            winMessageElement.style.display = 'block';
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                winMessageElement.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 悔棋功能
+        function undoMove() {
+            if (moveHistory.length === 0 || gameOver) return;
+            
+            // 获取最后一步棋
+            const lastMove = moveHistory.pop();
+            
+            // 清除棋盘上的棋子
+            board[lastMove.row][lastMove.col] = 0;
+            const cell = document.querySelector(`.cell[data-row="${lastMove.row}"][data-col="${lastMove.col}"]`);
+            cell.innerHTML = '';
+            
+            // 切换当前玩家
+            currentPlayer = lastMove.player;
+            gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+        }
+        
         // 重新开始游戏
         function resetGame() {
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
+            moveHistory = [];
             gameInfoElement.textContent = '当前玩家: 黑子';
+            winMessageElement.style.display = 'none';
             createBoard();
         }
         
