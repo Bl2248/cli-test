@@ -56,31 +56,27 @@
             background-color: #8B4513;
             border-radius: 50%;
             z-index: 1;
-        }
-        
-        .cell:nth-child(15n+1)::before {
             left: 50%;
             top: 50%;
+            transform: translate(-50%, -50%);
         }
         
-        .cell:nth-child(15n+15)::before {
-            right: 50%;
-            top: 50%;
-        }
-        
-        .cell:first-child::before,
-        .cell:nth-child(225)::before {
+        /* 隐藏边线上的点 */
+        .cell:nth-child(15n+1):not(:first-child):not(.cell:last-child)::before,
+        .cell:nth-child(15n):not(:first-child):not(.cell:last-child)::before,
+        .cell:nth-child(n+1):nth-child(-n+15):not(:first-child):not(.cell:last-child)::before,
+        .cell:nth-child(n+211):nth-child(-n+225):not(:first-child):not(.cell:last-child)::before {
             display: none;
         }
         
-        .cell:nth-child(n+1):nth-child(-n+15)::before {
-            top: 50%;
-            left: 50%;
-        }
-        
-        .cell:nth-child(n+211):nth-child(-n+225)::before {
-            bottom: 50%;
-            left: 50%;
+        /* 星位点 */
+        .cell:nth-child(113)::before,
+        .cell:nth-child(35)::before,
+        .cell:nth-child(39)::before,
+        .cell:nth-child(191)::before,
+        .cell:nth-child(195)::before {
+            width: 8px;
+            height: 8px;
         }
         
         .black-stone {
