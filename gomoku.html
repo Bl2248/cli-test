@@ -24,6 +24,34 @@
             margin-bottom: 20px;
             font-size: 1.2em;
             color: #555;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .player-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .player-stone {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+        
+        .black-stone-indicator {
+            background: radial-gradient(circle at 30% 30%, #000, #333);
+        }
+        
+        .white-stone-indicator {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border: 1px solid #999;
+        }
+        
+        .current-player .player-stone {
+            box-shadow: 0 0 5px 2px rgba(0, 0, 255, 0.5);
         }
         
         .board {
@@ -111,8 +139,13 @@
             100% { transform: scale(1); }
         }
         
-        button {
+        .controls {
             margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
             padding: 10px 20px;
             font-size: 1em;
             background-color: #4CAF50;
@@ -126,21 +159,49 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        #undoBtn {
+            background-color: #2196F3;
+        }
+        
+        #undoBtn:hover {
+            background-color: #0b7dda;
+        }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
-    <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
+    <div class="game-info">
+        <div id="gameInfo">游戏进行中</div>
+        <div class="player-indicator">
+            <div class="player-stone black-stone-indicator"></div>
+            <span>黑子</span>
+        </div>
+        <div class="player-indicator">
+            <div class="player-stone white-stone-indicator"></div>
+            <span>白子</span>
+        </div>
+    </div>
     <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="controls">
+        <button onclick="resetGame()">重新开始</button>
+        <button id="undoBtn" onclick="undoMove()">悔棋</button>
+    </div>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 记录落子历史用于悔棋
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
+        const undoBtn = document.getElementById('undoBtn');
         
         // 创建棋盘
         function createBoard() {
@@ -155,11 +216,27 @@
                     boardElement.appendChild(cell);
                 }
             }
+            updatePlayerIndicator();
+        }
+        
+        // 更新玩家指示器
+        function updatePlayerIndicator() {
+            const indicators = document.querySelectorAll('.player-indicator');
+            indicators.forEach((indicator, index) => {
+                if (index === currentPlayer - 1) {
+                    indicator.classList.add('current-player');
+                } else {
+                    indicator.classList.remove('current-player');
+                }
+            });
         }
         
         // 落子
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
+            
+            // 记录落子历史
+            moveHistory.push({row, col, player: currentPlayer});
             
             board[row][col] = currentPlayer;
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
@@ -172,10 +249,41 @@
                 gameOver = true;
                 highlightWinningStones(row, col);
                 gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                undoBtn.disabled = true;
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
-                gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+                gameInfoElement.textContent = `游戏进行中 - 轮到${currentPlayer === 1 ? '黑子' : '白子'}`;
+                updatePlayerIndicator();
+                undoBtn.disabled = false;
             }
+        }
+        
+        // 悔棋
+        function undoMove() {
+            if (moveHistory.length === 0 || gameOver) return;
+            
+            // 移除最后两步（黑白各一步）
+            for (let i = 0; i < 2 && moveHistory.length > 0; i++) {
+                const lastMove = moveHistory.pop();
+                if (lastMove) {
+                    board[lastMove.row][lastMove.col] = 0;
+                    const cell = document.querySelector(`.cell[data-row="${lastMove.row}"][data-col="${lastMove.col}"]`);
+                    cell.innerHTML = '';
+                }
+            }
+            
+            // 重置当前玩家为上一步的玩家
+            if (moveHistory.length > 0) {
+                const lastMove = moveHistory[moveHistory.length - 1];
+                currentPlayer = lastMove.player === 1 ? 2 : 1;
+            } else {
+                currentPlayer = 1; // 如果没有落子历史，重置为黑子先手
+            }
+            
+            gameOver = false;
+            gameInfoElement.textContent = `游戏进行中 - 轮到${currentPlayer === 1 ? '黑子' : '白子'}`;
+            updatePlayerIndicator();
+            undoBtn.disabled = moveHistory.length === 0;
         }
         
         // 检查是否获胜
@@ -280,12 +388,15 @@
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
-            gameInfoElement.textContent = '当前玩家: 黑子';
+            moveHistory = [];
+            gameInfoElement.textContent = '游戏进行中 - 轮到黑子';
             createBoard();
+            undoBtn.disabled = true;
         }
         
         // 初始化游戏
         createBoard();
+        undoBtn.disabled = true;
     </script>
 </body>
 </html>
