@@ -48,39 +48,14 @@
             position: relative;
         }
         
-        .cell::before {
+        .cell.star::before {
             content: "";
             position: absolute;
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             background-color: #8B4513;
             border-radius: 50%;
             z-index: 1;
-        }
-        
-        .cell:nth-child(15n+1)::before {
-            left: 50%;
-            top: 50%;
-        }
-        
-        .cell:nth-child(15n+15)::before {
-            right: 50%;
-            top: 50%;
-        }
-        
-        .cell:first-child::before,
-        .cell:nth-child(225)::before {
-            display: none;
-        }
-        
-        .cell:nth-child(n+1):nth-child(-n+15)::before {
-            top: 50%;
-            left: 50%;
-        }
-        
-        .cell:nth-child(n+211):nth-child(-n+225)::before {
-            bottom: 50%;
-            left: 50%;
         }
         
         .black-stone {
@@ -111,8 +86,17 @@
             100% { transform: scale(1); }
         }
         
-        button {
+        .last-move {
+            box-shadow: 0 0 5px 2px #ff0000;
+        }
+        
+        .controls {
             margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
             padding: 10px 20px;
             font-size: 1em;
             background-color: #4CAF50;
@@ -126,21 +110,51 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .game-history {
+            margin-top: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 450px;
+            background-color: #fff;
+        }
+        
+        .game-history h3 {
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
     <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
     <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="controls">
+        <button onclick="resetGame()">重新开始</button>
+        <button onclick="undoMove()" id="undoButton" disabled>悔棋</button>
+    </div>
+    <div class="game-history">
+        <h3>游戏记录</h3>
+        <div id="history"></div>
+    </div>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 记录每一步棋
+        let lastMoveElement = null; // 记录最后一步棋的元素
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
+        const historyElement = document.getElementById('history');
+        const undoButton = document.getElementById('undoButton');
         
         // 创建棋盘
         function createBoard() {
@@ -151,6 +165,14 @@
                     cell.className = 'cell';
                     cell.dataset.row = i;
                     cell.dataset.col = j;
+                    
+                    // 添加星位标记
+                    if ((i === 3 || i === 11) && (j === 3 || j === 11)) {
+                        cell.classList.add('star');
+                    } else if (i === 7 && j === 7) {
+                        cell.classList.add('star');
+                    }
+                    
                     cell.addEventListener('click', () => placeStone(i, j));
                     boardElement.appendChild(cell);
                 }
@@ -161,20 +183,95 @@
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
             
+            // 记录当前状态用于悔棋
+            moveHistory.push({
+                row: row,
+                col: col,
+                player: currentPlayer,
+                board: JSON.parse(JSON.stringify(board))
+            });
+            
+            // 启用悔棋按钮
+            undoButton.disabled = false;
+            
             board[row][col] = currentPlayer;
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            
+            // 移除上一步的高亮
+            if (lastMoveElement) {
+                lastMoveElement.classList.remove('last-move');
+            }
             
             const stone = document.createElement('div');
             stone.className = currentPlayer === 1 ? 'black-stone' : 'white-stone';
             cell.appendChild(stone);
             
+            // 高亮最后一步棋
+            stone.classList.add('last-move');
+            lastMoveElement = stone;
+            
+            // 添加到游戏记录
+            const moveText = document.createElement('div');
+            moveText.textContent = `第${moveHistory.length}步: ${currentPlayer === 1 ? '黑子' : '白子'} (${row+1},${col+1})`;
+            historyElement.appendChild(moveText);
+            historyElement.scrollTop = historyElement.scrollHeight;
+            
             if (checkWin(row, col)) {
                 gameOver = true;
                 highlightWinningStones(row, col);
                 gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                undoButton.disabled = true;
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
                 gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+            }
+        }
+        
+        // 悔棋
+        function undoMove() {
+            if (moveHistory.length < 1 || gameOver) return;
+            
+            // 移除最后一步棋的记录
+            const lastMove = moveHistory.pop();
+            
+            // 恢复棋盘状态
+            board = JSON.parse(JSON.stringify(lastMove.board));
+            
+            // 移除最后一步的高亮
+            if (lastMoveElement) {
+                lastMoveElement.classList.remove('last-move');
+            }
+            
+            // 移除最后一步的棋子
+            const lastCell = document.querySelector(`.cell[data-row="${lastMove.row}"][data-col="${lastMove.col}"]`);
+            if (lastCell.firstChild) {
+                lastCell.removeChild(lastCell.firstChild);
+            }
+            
+            // 移除游戏记录中的最后一步
+            if (historyElement.lastChild) {
+                historyElement.removeChild(historyElement.lastChild);
+            }
+            
+            // 更新当前玩家
+            currentPlayer = lastMove.player;
+            gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+            
+            // 如果没有更多步骤可以悔棋，禁用按钮
+            if (moveHistory.length < 1) {
+                undoButton.disabled = true;
+            }
+            
+            // 高亮新的最后一步棋
+            if (moveHistory.length > 0) {
+                const newLastMove = moveHistory[moveHistory.length - 1];
+                const newLastCell = document.querySelector(`.cell[data-row="${newLastMove.row}"][data-col="${newLastMove.col}"]`);
+                if (newLastCell.firstChild) {
+                    newLastCell.firstChild.classList.add('last-move');
+                    lastMoveElement = newLastCell.firstChild;
+                }
+            } else {
+                lastMoveElement = null;
             }
         }
         
@@ -280,7 +377,11 @@
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
+            moveHistory = [];
+            lastMoveElement = null;
             gameInfoElement.textContent = '当前玩家: 黑子';
+            historyElement.innerHTML = '';
+            undoButton.disabled = true;
             createBoard();
         }
         
