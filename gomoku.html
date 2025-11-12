@@ -12,18 +12,51 @@
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
         }
         
         h1 {
-            color: #333;
+            color: white;
+            text-align: center;
+            margin-top: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .game-info {
             margin-bottom: 20px;
-            font-size: 1.2em;
-            color: #555;
+            font-size: 1.3em;
+            color: white;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .player-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        .black-player {
+            background: radial-gradient(circle at 30% 30%, #000, #333);
+        }
+        
+        .white-player {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
         }
         
         .board {
@@ -33,7 +66,8 @@
             gap: 0;
             background-color: #D2B48C;
             border: 2px solid #8B4513;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
         }
         
         .cell {
@@ -46,6 +80,11 @@
             justify-content: center;
             cursor: pointer;
             position: relative;
+            transition: background-color 0.2s;
+        }
+        
+        .cell:hover {
+            background-color: rgba(255, 255, 0, 0.2);
         }
         
         .cell::before {
@@ -90,6 +129,12 @@
             border-radius: 50%;
             z-index: 2;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s;
+            animation: drop 0.3s ease-out;
+        }
+        
+        .black-stone:hover {
+            transform: scale(1.1);
         }
         
         .white-stone {
@@ -99,6 +144,12 @@
             border-radius: 50%;
             z-index: 2;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s;
+            animation: drop 0.3s ease-out;
+        }
+        
+        .white-stone:hover {
+            transform: scale(1.1);
         }
         
         .winning-stone {
@@ -107,40 +158,146 @@
         
         @keyframes pulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            50% { transform: scale(1.2); }
             100% { transform: scale(1); }
         }
         
+        @keyframes drop {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        
+        .forbidden {
+            background-color: rgba(255, 0, 0, 0.5);
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
         button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 1em;
-            background-color: #4CAF50;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 25px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         
         button:hover {
-            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #45a049, #4CAF50);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .rules {
+            margin-top: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+        
+        .rules h3 {
+            margin-top: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            padding-bottom: 5px;
+        }
+        
+        .rules ul {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+        
+        .rules li {
+            margin-bottom: 5px;
+        }
+        
+        .message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .message.show {
+            opacity: 1;
         }
     </style>
 </head>
 <body>
-    <h1>五子棋游戏</h1>
-    <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
-    <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="game-container">
+        <h1>五子棋游戏</h1>
+        <div class="game-info" id="gameInfo">
+            当前玩家: <span class="player-indicator black-player"></span> 黑子
+        </div>
+        <div class="board" id="board"></div>
+        <div class="controls">
+            <button onclick="resetGame()">重新开始</button>
+            <button onclick="undoMove()">悔棋</button>
+        </div>
+        <div class="rules">
+            <h3>游戏规则</h3>
+            <ul>
+                <li>黑子先行，双方轮流落子</li>
+                <li>率先在横、竖、斜方向连成五子者获胜</li>
+                <li>黑子有禁手规则：不能形成两个活三</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="message" id="message"></div>
+    
+    <!-- 音效 -->
+    <audio id="placeSound" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+    <audio id="winSound" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+    <audio id="forbiddenSound" preload="auto">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 记录棋步历史
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
+        const messageElement = document.getElementById('message');
+        const placeSound = document.getElementById('placeSound');
+        const winSound = document.getElementById('winSound');
+        const forbiddenSound = document.getElementById('forbiddenSound');
         
         // 创建棋盘
         function createBoard() {
@@ -157,9 +314,49 @@
             }
         }
         
+        // 显示消息
+        function showMessage(text) {
+            messageElement.textContent = text;
+            messageElement.classList.add('show');
+            setTimeout(() => {
+                messageElement.classList.remove('show');
+            }, 2000);
+        }
+        
+        // 播放音效
+        function playSound(sound) {
+            sound.currentTime = 0;
+            sound.play().catch(e => console.log("音效播放失败:", e));
+        }
+        
         // 落子
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
+            
+            // 检查黑子禁手（仅对黑子进行检查）
+            if (currentPlayer === 1 && isForbiddenMove(row, col)) {
+                playSound(forbiddenSound);
+                showMessage("这是禁手位置，请重新选择！");
+                highlightForbiddenMove(row, col);
+                setTimeout(() => {
+                    if (!gameOver) {
+                        gameInfoElement.innerHTML = `当前玩家: <span class="player-indicator ${currentPlayer === 1 ? 'black-player' : 'white-player'}"></span> ${currentPlayer === 1 ? '黑子' : '白子'}`;
+                        clearForbiddenHighlight();
+                    }
+                }, 1500);
+                return;
+            }
+            
+            // 播放落子音效
+            playSound(placeSound);
+            
+            // 保存当前状态到历史记录
+            moveHistory.push({
+                row: row,
+                col: col,
+                player: currentPlayer,
+                board: JSON.parse(JSON.stringify(board))
+            });
             
             board[row][col] = currentPlayer;
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
@@ -170,11 +367,108 @@
             
             if (checkWin(row, col)) {
                 gameOver = true;
+                playSound(winSound);
                 highlightWinningStones(row, col);
-                gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                gameInfoElement.innerHTML = `游戏结束! <span class="player-indicator ${currentPlayer === 1 ? 'black-player' : 'white-player'}"></span> ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                showMessage(`恭喜！${currentPlayer === 1 ? '黑子' : '白子'} 获胜！`);
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
-                gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+                gameInfoElement.innerHTML = `当前玩家: <span class="player-indicator ${currentPlayer === 1 ? 'black-player' : 'white-player'}"></span> ${currentPlayer === 1 ? '黑子' : '白子'}`;
+            }
+        }
+        
+        // 检查是否为禁手（黑子专用）
+        function isForbiddenMove(row, col) {
+            // 检查三三禁手
+            let threeCount = 0;
+            
+            // 检查四个方向是否形成活三
+            const directions = [
+                [0, 1],  // 水平
+                [1, 0],  // 垂直
+                [1, 1],  // 主对角线
+                [1, -1]  // 副对角线
+            ];
+            
+            // 临时落子
+            board[row][col] = 1;
+            
+            for (let [dx, dy] of directions) {
+                if (isHalfOpenThree(row, col, dx, dy)) {
+                    threeCount++;
+                }
+            }
+            
+            // 恢复棋盘
+            board[row][col] = 0;
+            
+            // 如果形成两个或以上活三，则为三三禁手
+            return threeCount >= 2;
+        }
+        
+        // 检查是否为活三
+        function isHalfOpenThree(row, col, dx, dy) {
+            const player = 1; // 黑子
+            let count = 1;
+            let openEnds = 0;
+            
+            // 正方向
+            for (let i = 1; i <= 4; i++) {
+                const r = row + dx * i;
+                const c = col + dy * i;
+                if (r >= 0 && r < 15 && c >= 0 && c < 15) {
+                    if (board[r][c] === player) {
+                        count++;
+                    } else if (board[r][c] === 0) {
+                        // 检查是否能形成五子
+                        if (count + i <= 5) {
+                            openEnds++;
+                        }
+                        break;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            // 反方向
+            for (let i = 1; i <= 4; i++) {
+                const r = row - dx * i;
+                const c = col - dy * i;
+                if (r >= 0 && r < 15 && c >= 0 && c < 15) {
+                    if (board[r][c] === player) {
+                        count++;
+                    } else if (board[r][c] === 0) {
+                        // 检查是否能形成五子
+                        if (count + i <= 5) {
+                            openEnds++;
+                        }
+                        break;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            // 活三的条件：正好3个子，两端都开放
+            return count === 3 && openEnds === 2;
+        }
+        
+        // 高亮禁手位置
+        function highlightForbiddenMove(row, col) {
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            cell.classList.add('forbidden');
+        }
+        
+        // 清除禁手高亮
+        function clearForbiddenHighlight() {
+            const forbiddenCell = document.querySelector('.cell.forbidden');
+            if (forbiddenCell) {
+                forbiddenCell.classList.remove('forbidden');
             }
         }
         
@@ -275,13 +569,56 @@
             });
         }
         
+        // 悔棋功能
+        function undoMove() {
+            if (moveHistory.length === 0 || gameOver) return;
+            
+            // 获取上一步的状态
+            const lastMove = moveHistory.pop();
+            
+            // 恢复棋盘状态
+            board = lastMove.board;
+            
+            // 更新当前玩家
+            currentPlayer = lastMove.player;
+            
+            // 重新渲染棋盘
+            renderBoard();
+            
+            // 更新游戏信息
+            gameInfoElement.innerHTML = `当前玩家: <span class="player-indicator ${currentPlayer === 1 ? 'black-player' : 'white-player'}"></span> ${currentPlayer === 1 ? '黑子' : '白子'}`;
+            showMessage("悔棋成功");
+        }
+        
+        // 渲染棋盘
+        function renderBoard() {
+            for (let i = 0; i < 15; i++) {
+                for (let j = 0; j < 15; j++) {
+                    const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`);
+                    cell.innerHTML = '';
+                    
+                    if (board[i][j] === 1) {
+                        const stone = document.createElement('div');
+                        stone.className = 'black-stone';
+                        cell.appendChild(stone);
+                    } else if (board[i][j] === 2) {
+                        const stone = document.createElement('div');
+                        stone.className = 'white-stone';
+                        cell.appendChild(stone);
+                    }
+                }
+            }
+        }
+        
         // 重新开始游戏
         function resetGame() {
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
-            gameInfoElement.textContent = '当前玩家: 黑子';
+            moveHistory = [];
+            gameInfoElement.innerHTML = '当前玩家: <span class="player-indicator black-player"></span> 黑子';
             createBoard();
+            showMessage("游戏已重新开始");
         }
         
         // 初始化游戏
