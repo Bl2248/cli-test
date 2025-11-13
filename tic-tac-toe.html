@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>井字棋游戏</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .game-info {
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            color: #555;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            background-color: #8B4513;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #D2B48C;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .cell:hover {
+            background-color: #e0c9a6;
+        }
+        
+        .cell.x {
+            color: #FF4136;
+        }
+        
+        .cell.o {
+            color: #0074D9;
+        }
+        
+        .winning-cell {
+            background-color: #90EE90 !important;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .win-message {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2E8B57;
+            margin: 10px 0;
+        }
+        
+        .draw-message {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #FF8C00;
+        }
+    </style>
+</head>
+<body>
+    <h1>井字棋游戏</h1>
+    <div class="game-info" id="gameInfo">当前玩家: X</div>
+    <div class="win-message" id="winMessage"></div>
+    <div class="draw-message" id="drawMessage"></div>
+    <div class="board" id="board"></div>
+    <button onclick="resetGame()">重新开始</button>
+
+    <script>
+        // 初始化游戏状态
+        let board = Array(3).fill().map(() => Array(3).fill(''));
+        let currentPlayer = 'X'; // X 或 O
+        let gameOver = false;
+        const boardElement = document.getElementById('board');
+        const gameInfoElement = document.getElementById('gameInfo');
+        const winMessageElement = document.getElementById('winMessage');
+        const drawMessageElement = document.getElementById('drawMessage');
+        
+        // 创建棋盘
+        function createBoard() {
+            boardElement.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', () => placeMark(i, j));
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+        
+        // 放置标记
+        function placeMark(row, col) {
+            if (board[row][col] !== '' || gameOver) return;
+            
+            board[row][col] = currentPlayer;
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            cell.textContent = currentPlayer;
+            cell.classList.add(currentPlayer.toLowerCase());
+            
+            if (checkWin()) {
+                gameOver = true;
+                highlightWinningCells();
+                winMessageElement.textContent = `玩家 ${currentPlayer} 获胜！`;
+                gameInfoElement.textContent = '';
+            } else if (checkDraw()) {
+                gameOver = true;
+                drawMessageElement.textContent = '平局！';
+                gameInfoElement.textContent = '';
+            } else {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                gameInfoElement.textContent = `当前玩家: ${currentPlayer}`;
+            }
+        }
+        
+        // 检查是否获胜
+        function checkWin() {
+            // 检查行
+            for (let i = 0; i < 3; i++) {
+                if (board[i][0] !== '' && board[i][0] === board[i][1] && board[i][1] === board[i][2]) {
+                    return true;
+                }
+            }
+            
+            // 检查列
+            for (let j = 0; j < 3; j++) {
+                if (board[0][j] !== '' && board[0][j] === board[1][j] && board[1][j] === board[2][j]) {
+                    return true;
+                }
+            }
+            
+            // 检查对角线
+            if (board[0][0] !== '' && board[0][0] === board[1][1] && board[1][1] === board[2][2]) {
+                return true;
+            }
+            
+            if (board[0][2] !== '' && board[0][2] === board[1][1] && board[1][1] === board[2][0]) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // 检查是否平局
+        function checkDraw() {
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (board[i][j] === '') {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        
+        // 高亮显示获胜格子
+        function highlightWinningCells() {
+            // 检查行
+            for (let i = 0; i < 3; i++) {
+                if (board[i][0] !== '' && board[i][0] === board[i][1] && board[i][1] === board[i][2]) {
+                    document.querySelector(`.cell[data-row="${i}"][data-col="0"]`).classList.add('winning-cell');
+                    document.querySelector(`.cell[data-row="${i}"][data-col="1"]`).classList.add('winning-cell');
+                    document.querySelector(`.cell[data-row="${i}"][data-col="2"]`).classList.add('winning-cell');
+                    return;
+                }
+            }
+            
+            // 检查列
+            for (let j = 0; j < 3; j++) {
+                if (board[0][j] !== '' && board[0][j] === board[1][j] && board[1][j] === board[2][j]) {
+                    document.querySelector(`.cell[data-row="0"][data-col="${j}"]`).classList.add('winning-cell');
+                    document.querySelector(`.cell[data-row="1"][data-col="${j}"]`).classList.add('winning-cell');
+                    document.querySelector(`.cell[data-row="2"][data-col="${j}"]`).classList.add('winning-cell');
+                    return;
+                }
+            }
+            
+            // 检查对角线
+            if (board[0][0] !== '' && board[0][0] === board[1][1] && board[1][1] === board[2][2]) {
+                document.querySelector(`.cell[data-row="0"][data-col="0"]`).classList.add('winning-cell');
+                document.querySelector(`.cell[data-row="1"][data-col="1"]`).classList.add('winning-cell');
+                document.querySelector(`.cell[data-row="2"][data-col="2"]`).classList.add('winning-cell');
+                return;
+            }
+            
+            if (board[0][2] !== '' && board[0][2] === board[1][1] && board[1][1] === board[2][0]) {
+                document.querySelector(`.cell[data-row="0"][data-col="2"]`).classList.add('winning-cell');
+                document.querySelector(`.cell[data-row="1"][data-col="1"]`).classList.add('winning-cell');
+                document.querySelector(`.cell[data-row="2"][data-col="0"]`).classList.add('winning-cell');
+                return;
+            }
+        }
+        
+        // 重新开始游戏
+        function resetGame() {
+            board = Array(3).fill().map(() => Array(3).fill(''));
+            currentPlayer = 'X';
+            gameOver = false;
+            gameInfoElement.textContent = '当前玩家: X';
+            winMessageElement.textContent = '';
+            drawMessageElement.textContent = '';
+            createBoard();
+        }
+        
+        // 初始化游戏
+        createBoard();
+    </script>
+</body>
+</html>
