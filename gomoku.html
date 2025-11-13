@@ -46,6 +46,7 @@
             justify-content: center;
             cursor: pointer;
             position: relative;
+            transition: background-color 0.2s;
         }
         
         .cell::before {
@@ -56,6 +57,10 @@
             background-color: #8B4513;
             border-radius: 50%;
             z-index: 1;
+        }
+        
+        .cell:hover {
+            background-color: rgba(210, 180, 140, 0.5);
         }
         
         .cell:nth-child(15n+1)::before {
@@ -90,6 +95,7 @@
             border-radius: 50%;
             z-index: 2;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            animation: stoneDrop 0.3s ease-out;
         }
         
         .white-stone {
@@ -99,6 +105,19 @@
             border-radius: 50%;
             z-index: 2;
             box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            animation: stoneDrop 0.3s ease-out;
+        }
+        
+        @keyframes stoneDrop {
+            0% {
+                transform: scale(0);
+            }
+            70% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
         }
         
         .winning-stone {
@@ -113,6 +132,7 @@
         
         button {
             margin-top: 20px;
+            margin-right: 10px;
             padding: 10px 20px;
             font-size: 1em;
             background-color: #4CAF50;
@@ -126,19 +146,68 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .game-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin: 20px 0;
+        }
+        
+        .game-records {
+            width: 200px;
+            min-height: 450px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .game-records h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        
+        .game-records p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            color: #555;
+        }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
     <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
-    <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="game-container">
+        <div class="board" id="board"></div>
+        <div class="game-records" id="gameRecords">
+            <p>暂无游戏记录</p>
+        </div>
+    </div>
+    <div class="controls">
+        <button onclick="resetGame()">重新开始</button>
+        <button onclick="undoMove()">悔棋</button>
+    </div>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 记录落子历史
+        let gameRecords = []; // 记录游戏过程
+        let audioContext = null; // 用于播放音效
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
         
@@ -157,25 +226,91 @@
             }
         }
         
+        // 播放落子音效
+        function playStoneSound() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 440; // A4 音符
+                gainNode.gain.value = 0.1;
+                
+                oscillator.start();
+                setTimeout(() => {
+                    oscillator.stop();
+                }, 100);
+            } catch (e) {
+                console.log("无法播放音效: " + e.message);
+            }
+        }
+        
+        // 播放胜利音效
+        function playWinSound() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 523.25; // C5 音符
+                gainNode.gain.value = 0.2;
+                
+                oscillator.start();
+                setTimeout(() => {
+                    oscillator.stop();
+                }, 500);
+            } catch (e) {
+                console.log("无法播放音效: " + e.message);
+            }
+        }
+        
         // 落子
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
             
+            // 检查禁手（仅对黑棋）
+            if (currentPlayer === 1 && isForbiddenMove(row, col)) {
+                gameInfoElement.textContent = '这是禁手位置，请重新选择！';
+                return;
+            }
+            
             board[row][col] = currentPlayer;
+            const timestamp = new Date().toLocaleTimeString();
+            moveHistory.push({row, col, player: currentPlayer, timestamp}); // 记录落子历史
+            gameRecords.push({row, col, player: currentPlayer, timestamp}); // 记录游戏过程
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             
             const stone = document.createElement('div');
             stone.className = currentPlayer === 1 ? 'black-stone' : 'white-stone';
             cell.appendChild(stone);
             
+            playStoneSound(); // 播放落子音效
+            
             if (checkWin(row, col)) {
                 gameOver = true;
                 highlightWinningStones(row, col);
                 gameInfoElement.textContent = `游戏结束! ${currentPlayer === 1 ? '黑子' : '白子'} 获胜!`;
+                playWinSound(); // 播放胜利音效
             } else {
                 currentPlayer = currentPlayer === 1 ? 2 : 1;
                 gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
             }
+            
+            updateGameRecordsDisplay(); // 更新游戏记录显示
         }
         
         // 检查是否获胜
@@ -275,13 +410,390 @@
             });
         }
         
+        // 检查禁手
+        function isForbiddenMove(row, col) {
+            // 创建临时棋盘用于检查禁手
+            const tempBoard = board.map(arr => [...arr]);
+            tempBoard[row][col] = 1; // 假设落黑子
+            
+            // 检查三三禁手
+            if (checkDoubleThree(tempBoard, row, col)) {
+                return true;
+            }
+            
+            // 检查四四禁手
+            if (checkDoubleFour(tempBoard, row, col)) {
+                return true;
+            }
+            
+            // 检查长连禁手
+            if (checkOverline(tempBoard, row, col)) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // 检查三三禁手
+        function checkDoubleThree(board, row, col) {
+            let threeCount = 0;
+            
+            // 检查四个方向
+            const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            
+            for (let [dx, dy] of directions) {
+                // 检查每个方向是否能形成活三
+                if (isLiveThree(board, row, col, dx, dy)) {
+                    threeCount++;
+                    if (threeCount >= 2) {
+                        return true; // 两个活三，构成三三禁手
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        // 检查四四禁手
+        function checkDoubleFour(board, row, col) {
+            let fourCount = 0;
+            
+            // 检查四个方向
+            const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            
+            for (let [dx, dy] of directions) {
+                // 检查每个方向是否能形成活四或冲四
+                if (isLiveFour(board, row, col, dx, dy) || isFiveInARow(board, row, col, dx, dy)) {
+                    fourCount++;
+                    if (fourCount >= 2) {
+                        return true; // 两个四，构成四四禁手
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        // 检查长连禁手
+        function checkOverline(board, row, col) {
+            const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            
+            for (let [dx, dy] of directions) {
+                let count = 1; // 当前位置的棋子
+                
+                // 正方向
+                for (let i = 1; i <= 5; i++) {
+                    const r = row + dx * i;
+                    const c = col + dy * i;
+                    if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 1) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 反方向
+                for (let i = 1; i <= 5; i++) {
+                    const r = row - dx * i;
+                    const c = col - dy * i;
+                    if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 1) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (count > 5) {
+                    return true; // 长连
+                }
+            }
+            
+            return false;
+        }
+        
+        // 判断是否为活三
+        function isLiveThree(board, row, col, dx, dy) {
+            let count = 1;
+            let openStart = false;
+            let openEnd = false;
+            
+            // 正方向
+            for (let i = 1; i <= 4; i++) {
+                const r = row + dx * i;
+                const c = col + dy * i;
+                if (r >= 0 && r < 15 && c >= 0 && c < 15) {
+                    if (board[r][c] === 1) {
+                        count++;
+                    } else if (board[r][c] === 0) {
+                        // 检查是否有空位
+                        if (i === 1) {
+                            // 检查是否能继续形成三连
+                            let tempCount = count;
+                            let hasEmpty = false;
+                            for (let j = i + 1; j <= 4; j++) {
+                                const r2 = row + dx * j;
+                                const c2 = col + dy * j;
+                                if (r2 >= 0 && r2 < 15 && c2 >= 0 && c2 < 15 && board[r2][c2] === 1) {
+                                    tempCount++;
+                                } else if (r2 >= 0 && r2 < 15 && c2 >= 0 && c2 < 15 && board[r2][c2] === 0) {
+                                    hasEmpty = true;
+                                    break;
+                                } else {
+                                    break;
+                                }
+                            }
+                            if (tempCount === 3 && hasEmpty) openStart = true;
+                        }
+                        break;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            // 反方向
+            for (let i = 1; i <= 4; i++) {
+                const r = row - dx * i;
+                const c = col - dy * i;
+                if (r >= 0 && r < 15 && c >= 0 && c < 15) {
+                    if (board[r][c] === 1) {
+                        count++;
+                    } else if (board[r][c] === 0) {
+                        if (i === 1) {
+                            // 检查是否能继续形成三连
+                            let tempCount = count;
+                            let hasEmpty = false;
+                            for (let j = i + 1; j <= 4; j++) {
+                                const r2 = row - dx * j;
+                                const c2 = col - dy * j;
+                                if (r2 >= 0 && r2 < 15 && c2 >= 0 && c2 < 15 && board[r2][c2] === 1) {
+                                    tempCount++;
+                                } else if (r2 >= 0 && r2 < 15 && c2 >= 0 && c2 < 15 && board[r2][c2] === 0) {
+                                    hasEmpty = true;
+                                    break;
+                                } else {
+                                    break;
+                                }
+                            }
+                            if (tempCount === 3 && hasEmpty) openEnd = true;
+                        }
+                        break;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            // 简化活三判断
+            return (count === 3 && isBounded(board, row, col, dx, dy) === 0);
+        }
+        
+        // 判断是否为活四
+        function isLiveFour(board, row, col, dx, dy) {
+            let count = 1;
+            
+            // 正方向
+            for (let i = 1; i <= 4; i++) {
+                const r = row + dx * i;
+                const c = col + dy * i;
+                if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 1) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            
+            // 反方向
+            for (let i = 1; i <= 4; i++) {
+                const r = row - dx * i;
+                const c = col - dy * i;
+                if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 1) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            
+            return count === 4 && isBounded(board, row, col, dx, dy) === 0;
+        }
+        
+        // 检查是否能形成五连
+        function isFiveInARow(board, row, col, dx, dy) {
+            let count = 1;
+            
+            // 正方向
+            for (let i = 1; i <= 4; i++) {
+                const r = row + dx * i;
+                const c = col + dy * i;
+                if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 1) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            
+            // 反方向
+            for (let i = 1; i <= 4; i++) {
+                const r = row - dx * i;
+                const c = col - dy * i;
+                if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 1) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            
+            return count === 5;
+        }
+        
+        // 检查方向上的边界数
+        function isBounded(board, row, col, dx, dy) {
+            let blocked = 0;
+            
+            // 检查正方向
+            let r = row + dx;
+            let c = col + dy;
+            while (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 1) {
+                r += dx;
+                c += dy;
+            }
+            if (r < 0 || r >= 15 || c < 0 || c >= 15 || board[r][c] === 2) {
+                blocked++;
+            }
+            
+            // 检查反方向
+            r = row - dx;
+            c = col - dy;
+            while (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 1) {
+                r -= dx;
+                c -= dy;
+            }
+            if (r < 0 || r >= 15 || c < 0 || c >= 15 || board[r][c] === 2) {
+                blocked++;
+            }
+            
+            return blocked;
+        }
+        
+        // 高亮显示获胜棋子
+        function highlightWinningStones(row, col) {
+            const player = board[row][col];
+            const directions = [
+                [0, 1],  // 水平
+                [1, 0],  // 垂直
+                [1, 1],  // 主对角线
+                [1, -1]  // 副对角线
+            ];
+            
+            let winningCells = [{row, col}];
+            
+            for (let [dx, dy] of directions) {
+                let count = 1;
+                let tempCells = [{row, col}];
+                
+                // 正方向
+                for (let i = 1; i < 5; i++) {
+                    const r = row + dx * i;
+                    const c = col + dy * i;
+                    if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === player) {
+                        count++;
+                        tempCells.push({row: r, col: c});
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 反方向
+                for (let i = 1; i < 5; i++) {
+                    const r = row - dx * i;
+                    const c = col - dy * i;
+                    if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === player) {
+                        count++;
+                        tempCells.push({row: r, col: c});
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (count >= 5) {
+                    winningCells = tempCells;
+                    break;
+                }
+            }
+            
+            // 添加高亮效果
+            winningCells.forEach(cell => {
+                const cellElement = document.querySelector(`.cell[data-row="${cell.row}"][data-col="${cell.col}"]`);
+                const stone = cellElement.querySelector('.black-stone, .white-stone');
+                if (stone) {
+                    stone.classList.add('winning-stone');
+                }
+            });
+        }
+        
         // 重新开始游戏
         function resetGame() {
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
+            moveHistory = []; // 清空落子历史
+            gameRecords = []; // 清空游戏记录
             gameInfoElement.textContent = '当前玩家: 黑子';
             createBoard();
+            updateGameRecordsDisplay(); // 更新游戏记录显示
+        }
+        
+        // 悔棋功能
+        function undoMove() {
+            if (gameOver || moveHistory.length === 0) return;
+            
+            const lastMove = moveHistory.pop();
+            const {row, col, player} = lastMove;
+            
+            // 清除棋子
+            board[row][col] = 0;
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            const stone = cell.querySelector('.black-stone, .white-stone');
+            if (stone) {
+                cell.removeChild(stone);
+            }
+            
+            // 从游戏记录中移除
+            gameRecords.pop();
+            
+            // 切换玩家
+            currentPlayer = player;
+            gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+            
+            updateGameRecordsDisplay(); // 更新游戏记录显示
+        }
+        
+        // 更新游戏记录显示
+        function updateGameRecordsDisplay() {
+            const recordsElement = document.getElementById('gameRecords');
+            if (!recordsElement) return;
+            
+            if (gameRecords.length === 0) {
+                recordsElement.innerHTML = '<p>暂无游戏记录</p>';
+                return;
+            }
+            
+            let recordsHTML = '<h3>游戏记录</h3>';
+            recordsHTML += '<div style="max-height: 200px; overflow-y: auto;">';
+            
+            gameRecords.forEach((record, index) => {
+                const player = record.player === 1 ? '黑子' : '白子';
+                const rowLabel = String.fromCharCode(65 + record.row); // A-O
+                const colLabel = record.col + 1;
+                recordsHTML += `<p>${index + 1}. ${player} (${rowLabel}${colLabel}) - ${record.timestamp}</p>`;
+            });
+            
+            recordsHTML += '</div>';
+            recordsElement.innerHTML = recordsHTML;
         }
         
         // 初始化游戏
