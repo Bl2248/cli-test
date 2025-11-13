@@ -126,19 +126,33 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .controls button {
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
     <h1>五子棋游戏</h1>
     <div class="game-info" id="gameInfo">当前玩家: 黑子</div>
     <div class="board" id="board"></div>
-    <button onclick="resetGame()">重新开始</button>
+    <div class="controls">
+        <button onclick="resetGame()">重新开始</button>
+        <button onclick="undoMove()">悔棋</button>
+    </div>
 
     <script>
         // 初始化游戏状态
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1; // 1代表黑子，2代表白子
         let gameOver = false;
+        let moveHistory = []; // 记录棋步历史，用于悔棋
         const boardElement = document.getElementById('board');
         const gameInfoElement = document.getElementById('gameInfo');
         
@@ -160,6 +174,9 @@
         // 落子
         function placeStone(row, col) {
             if (board[row][col] !== 0 || gameOver) return;
+            
+            // 记录当前步
+            moveHistory.push({row, col, player: currentPlayer});
             
             board[row][col] = currentPlayer;
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
@@ -275,11 +292,35 @@
             });
         }
         
+        // 悔棋功能
+        function undoMove() {
+            if (gameOver || moveHistory.length === 0) return;
+            
+            // 弹出最后一步
+            const lastMove = moveHistory.pop();
+            const {row, col} = lastMove;
+            
+            // 重置棋盘状态
+            board[row][col] = 0;
+            
+            // 移除棋子元素
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            const stone = cell.querySelector('.black-stone, .white-stone');
+            if (stone) {
+                cell.removeChild(stone);
+            }
+            
+            // 切换回前一个玩家
+            currentPlayer = lastMove.player;
+            gameInfoElement.textContent = `当前玩家: ${currentPlayer === 1 ? '黑子' : '白子'}`;
+        }
+        
         // 重新开始游戏
         function resetGame() {
             board = Array(15).fill().map(() => Array(15).fill(0));
             currentPlayer = 1;
             gameOver = false;
+            moveHistory = []; // 清空棋步历史
             gameInfoElement.textContent = '当前玩家: 黑子';
             createBoard();
         }
