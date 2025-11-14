@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            text-align: center;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 0;
+            background-color: #dcb35c;
+            border: 2px solid #000;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #000;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+        .cell:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        .black {
+            background-color: #000;
+            border-radius: 50%;
+        }
+        .white {
+            background-color: #fff;
+            border-radius: 50%;
+        }
+        .status {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>五子棋</h1>
+        <div class="board" id="board"></div>
+        <div class="status" id="status">当前玩家: 黑棋</div>
+    </div>
+
+    <script>
+        const boardSize = 15;
+        let currentPlayer = 'black';
+        let gameBoard = Array(boardSize).fill().map(() => Array(boardSize).fill(null));
+        let gameOver = false;
+
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status');
+
+        // 创建棋盘
+        function createBoard() {
+            for (let i = 0; i < boardSize; i++) {
+                for (let j = 0; j < boardSize; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', handleCellClick);
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        // 处理点击事件
+        function handleCellClick(event) {
+            if (gameOver) return;
+
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+
+            if (gameBoard[row][col] !== null) return;
+
+            // 落子
+            gameBoard[row][col] = currentPlayer;
+            event.target.classList.add(currentPlayer);
+
+            // 检查胜负
+            if (checkWin(row, col)) {
+                statusElement.textContent = `游戏结束! ${currentPlayer === 'black' ? '黑棋' : '白棋'} 获胜!`;
+                gameOver = true;
+                return;
+            }
+
+            // 切换玩家
+            currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+            statusElement.textContent = `当前玩家: ${currentPlayer === 'black' ? '黑棋' : '白棋'}`;
+        }
+
+        // 检查胜负
+        function checkWin(row, col) {
+            const directions = [
+                [0, 1],  // 水平
+                [1, 0],  // 垂直
+                [1, 1],  // 对角线 \
+                [1, -1]  // 对角线 /
+            ];
+
+            for (const [dx, dy] of directions) {
+                let count = 1;
+
+                // 正向检查
+                for (let i = 1; i < 5; i++) {
+                    const r = row + dx * i;
+                    const c = col + dy * i;
+                    if (r >= 0 && r < boardSize && c >= 0 && c < boardSize && gameBoard[r][c] === currentPlayer) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+
+                // 反向检查
+                for (let i = 1; i < 5; i++) {
+                    const r = row - dx * i;
+                    const c = col - dy * i;
+                    if (r >= 0 && r < boardSize && c >= 0 && c < boardSize && gameBoard[r][c] === currentPlayer) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (count >= 5) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // 初始化游戏
+        createBoard();
+    </script>
+</body>
+</html>
