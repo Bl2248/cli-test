@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            text-align: center;
+        }
+        #game-board {
+            border: 2px solid #333;
+            background-color: #dcb35c;
+            position: relative;
+        }
+        .cell {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+        }
+        .black {
+            background-color: black;
+        }
+        .white {
+            background-color: white;
+            border: 1px solid #000;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        #restart-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>五子棋游戏</h1>
+        <canvas id="game-board" width="480" height="480"></canvas>
+        <div id="status">当前玩家: 黑棋</div>
+        <button id="restart-btn">重新开始</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-board');
+        const ctx = canvas.getContext('2d');
+        const statusDiv = document.getElementById('status');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // 棋盘配置
+        const GRID_SIZE = 15;
+        const CELL_SIZE = canvas.width / (GRID_SIZE - 1);
+        const stones = []; // 存储棋子位置
+
+        // 初始化棋盘
+        function initBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制网格线
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i < GRID_SIZE; i++) {
+                // 垂直线
+                ctx.beginPath();
+                ctx.moveTo(i * CELL_SIZE, 0);
+                ctx.lineTo(i * CELL_SIZE, canvas.height);
+                ctx.stroke();
+                
+                // 水平线
+                ctx.beginPath();
+                ctx.moveTo(0, i * CELL_SIZE);
+                ctx.lineTo(canvas.width, i * CELL_SIZE);
+                ctx.stroke();
+            }
+        }
+
+        // 绘制棋子
+        function drawStone(x, y, isBlack) {
+            const centerX = x * CELL_SIZE;
+            const centerY = y * CELL_SIZE;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, CELL_SIZE / 2 - 2, 0, Math.PI * 2);
+            ctx.fillStyle = isBlack ? 'black' : 'white';
+            ctx.fill();
+            ctx.strokeStyle = 'black';
+            ctx.stroke();
+        }
+
+        // 检查是否获胜
+        function checkWin(x, y, isBlack) {
+            const directions = [
+                [1, 0],   // 水平
+                [0, 1],   // 垂直
+                [1, 1],   // 主对角线
+                [1, -1]   // 反对角线
+            ];
+            
+            for (let [dx, dy] of directions) {
+                let count = 1; // 包含当前棋子
+                
+                // 正方向检查
+                for (let i = 1; i < 5; i++) {
+                    const nx = x + dx * i;
+                    const ny = y + dy * i;
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && 
+                        stones[nx] && stones[nx][ny] === (isBlack ? 1 : 2)) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 反方向检查
+                for (let i = 1; i < 5; i++) {
+                    const nx = x - dx * i;
+                    const ny = y - dy * i;
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && 
+                        stones[nx] && stones[nx][ny] === (isBlack ? 1 : 2)) {
+                        count++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (count >= 5) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        // 处理点击事件
+        let currentPlayer = 1; // 1为黑棋，2为白棋
+        canvas.addEventListener('click', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.round((e.clientX - rect.left) / CELL_SIZE);
+            const y = Math.round((e.clientY - rect.top) / CELL_SIZE);
+            
+            // 检查位置是否有效
+            if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return;
+            
+            // 检查该位置是否已有棋子
+            if (stones[x] && stones[x][y]) return;
+            
+            // 记录棋子
+            if (!stones[x]) stones[x] = [];
+            stones[x][y] = currentPlayer;
+            
+            // 绘制棋子
+            drawStone(x, y, currentPlayer === 1);
+            
+            // 检查是否获胜
+            if (checkWin(x, y, currentPlayer === 1)) {
+                const winner = currentPlayer === 1 ? '黑棋' : '白棋';
+                statusDiv.textContent = `游戏结束，\${winner}获胜！`;
+                canvas.removeEventListener('click', arguments.callee);
+                return;
+            }
+            
+            // 切换玩家
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            statusDiv.textContent = `当前玩家: \${currentPlayer === 1 ? '黑棋' : '白棋'}`;
+        });
+
+        // 重新开始游戏
+        restartBtn.addEventListener('click', function() {
+            stones.length = 0;
+            currentPlayer = 1;
+            statusDiv.textContent = '当前玩家: 黑棋';
+            initBoard();
+            
+            // 重新绑定点击事件
+            const oldHandler = canvas.onclick;
+            canvas.onclick = null;
+            canvas.addEventListener('click', oldHandler);
+        });
+
+        // 初始化游戏
+        initBoard();
+    </script>
+</body>
+</html>
