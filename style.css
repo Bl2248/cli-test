@@ -1,0 +1,46 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+.game-container {
+    text-align: center;
+}
+
+h1 {
+    color: #333;
+}
+
+.status {
+    margin: 20px 0;
+    font-size: 18px;
+}
+
+#chessboard {
+    border: 2px solid #333;
+    background-color: #dcb35c;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.controls {
+    margin-top: 20px;
+}
+
+#restart-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#restart-btn:hover {
+    background-color: #45a049;
+}
