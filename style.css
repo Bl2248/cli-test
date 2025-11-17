@@ -1,0 +1,117 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+.container {
+    text-align: center;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    width: 500px;
+}
+
+.current-player {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#reset-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#reset-btn:hover {
+    background-color: #45a049;
+}
+
+.game-board {
+    display: grid;
+    grid-template-columns: repeat(15, 30px);
+    grid-template-rows: repeat(15, 30px);
+    gap: 0;
+    width: fit-content;
+    margin: 0 auto;
+    background-color: #e8c77f;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.cell {
+    width: 30px;
+    height: 30px;
+    border: 0.5px solid #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.cell::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.cell:hover::before {
+    box-shadow: inset 0 0 0 2px #ff9800;
+}
+
+.piece {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 2;
+}
+
+.black {
+    background: radial-gradient(circle at 30% 30%, #666, #000);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.white {
+    background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.game-status {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: bold;
+    height: 30px;
+}
+
+.winner-message {
+    color: green;
+}
+
+.draw-message {
+    color: orange;
+}
