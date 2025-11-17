@@ -1,0 +1,155 @@
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #f5f5dc, #d2b48c);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    text-align: center;
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.current-player {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+#restart-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#restart-btn:hover {
+    background-color: #45a049;
+}
+
+.game-board {
+    display: inline-block;
+    background-color: #dcb35c;
+    border: 2px solid #8B4513;
+    border-radius: 5px;
+    padding: 10px;
+    position: relative;
+}
+
+.board-grid {
+    display: grid;
+    grid-template-columns: repeat(15, 30px);
+    grid-template-rows: repeat(15, 30px);
+    gap: 0;
+    position: relative;
+}
+
+.cell {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    background-color: #dcb35c;
+}
+
+.cell::before, .cell::after {
+    content: '';
+    position: absolute;
+    background-color: #333;
+}
+
+.cell::before {
+    width: 100%;
+    height: 1px;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+}
+
+.cell::after {
+    width: 1px;
+    height: 100%;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+}
+
+.cell:hover {
+    background-color: #cda550;
+}
+
+.cell.black::before, .cell.black::after {
+    display: none;
+}
+
+.cell.black::after {
+    content: '';
+    width: 24px;
+    height: 24px;
+    background-color: #000;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+}
+
+.cell.white::before, .cell.white::after {
+    display: none;
+}
+
+.cell.white::after {
+    content: '';
+    width: 24px;
+    height: 24px;
+    background-color: #fff;
+    border-radius: 50%;
+    border: 1px solid #333;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.game-status {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+    min-height: 30px;
+}
+
+.winning-stone {
+    position: relative;
+}
+.winning-stone::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background-color: red;
+    border-radius: 50%;
+    z-index: 10;
+}
