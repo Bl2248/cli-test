@@ -1,0 +1,103 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+.container {
+    text-align: center;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+h1 {
+    margin-top: 0;
+}
+
+.status {
+    margin: 15px 0;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.game-board {
+    display: inline-block;
+    background-color: #dcb35c;
+    border: 2px solid #8b4513;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* 棋盘网格 */
+.game-board::before {
+    content: "";
+    display: block;
+    padding-top: 100%; /* 保持正方形比例 */
+}
+
+.game-board-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+}
+
+.cell {
+    position: relative;
+    border-right: 1px solid #333;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+}
+
+.cell:last-child {
+    border-right: none;
+}
+
+.cell:nth-last-child(-n+15) {
+    border-bottom: none;
+}
+
+/* 棋子样式 */
+.stone {
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    top: 10%;
+    left: 10%;
+    pointer-events: none;
+}
+
+.black {
+    background: radial-gradient(circle at 30% 30%, #666, #000);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.white {
+    background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+#reset-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#reset-btn:hover {
+    background-color: #45a049;
+}
