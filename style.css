@@ -1,0 +1,116 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+.container {
+    text-align: center;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+h1 {
+    margin-top: 0;
+    color: #333;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.status {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#reset-btn {
+    padding: 8px 16px;
+    font-size: 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#reset-btn:hover {
+    background-color: #45a049;
+}
+
+.game-board {
+    display: inline-block;
+    background-color: #DEB887;
+    border: 2px solid #8B4513;
+    position: relative;
+}
+
+.game-board::before {
+    content: "";
+    display: block;
+    padding-bottom: 100%; /* 正方形比例 */
+}
+
+.cell {
+    position: absolute;
+    border-right: 1px solid #333;
+    border-bottom: 1px solid #333;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.cell:hover::before {
+    content: "";
+    position: absolute;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.stone {
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    position: absolute;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.black {
+    background: radial-gradient(circle at 30% 30%, #ffffff, #000000);
+}
+
+.white {
+    background: radial-gradient(circle at 30% 30%, #ffffff, #cccccc);
+}
+
+.result {
+    margin-top: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    min-height: 30px;
+}
+
+.winning-stone {
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
