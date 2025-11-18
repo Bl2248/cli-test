@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>井字棋游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        
+        .game-container {
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .status {
+            margin: 20px 0;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin: 0 auto;
+        }
+        
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #fff;
+            border: 2px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .restart-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .restart-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .winning-cell {
+            background-color: #aaffaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>井字棋游戏</h1>
+        <div class="status" id="status">玩家 X 的回合</div>
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <button class="restart-btn" id="restart">重新开始</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const board = document.getElementById('board');
+            const status = document.getElementById('status');
+            const restartBtn = document.getElementById('restart');
+            const cells = document.querySelectorAll('.cell');
+            
+            let currentPlayer = 'X';
+            let gameBoard = ['', '', '', '', '', '', '', '', ''];
+            let gameActive = true;
+            
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // 横向
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // 纵向
+                [0, 4, 8], [2, 4, 6]             // 对角线
+            ];
+            
+            function handleCellClick(e) {
+                const cell = e.target;
+                const index = parseInt(cell.getAttribute('data-index'));
+                
+                if (gameBoard[index] !== '' || !gameActive) {
+                    return;
+                }
+                
+                gameBoard[index] = currentPlayer;
+                cell.textContent = currentPlayer;
+                
+                if (checkWin()) {
+                    status.textContent = `玩家 ${currentPlayer} 获胜！`;
+                    gameActive = false;
+                    highlightWinningCells();
+                } else if (isBoardFull()) {
+                    status.textContent = '平局！';
+                    gameActive = false;
+                } else {
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                    status.textContent = `玩家 ${currentPlayer} 的回合`;
+                }
+            }
+            
+            function checkWin() {
+                return winPatterns.some(pattern => {
+                    const [a, b, c] = pattern;
+                    return gameBoard[a] !== '' && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c];
+                });
+            }
+            
+            function highlightWinningCells() {
+                winPatterns.forEach(pattern => {
+                    const [a, b, c] = pattern;
+                    if (gameBoard[a] !== '' && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c]) {
+                        cells[a].classList.add('winning-cell');
+                        cells[b].classList.add('winning-cell');
+                        cells[c].classList.add('winning-cell');
+                    }
+                });
+            }
+            
+            function isBoardFull() {
+                return gameBoard.every(cell => cell !== '');
+            }
+            
+            function restartGame() {
+                currentPlayer = 'X';
+                gameBoard = ['', '', '', '', '', '', '', '', ''];
+                gameActive = true;
+                status.textContent = `玩家 X 的回合`;
+                
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.classList.remove('winning-cell');
+                });
+            }
+            
+            cells.forEach(cell => {
+                cell.addEventListener('click', handleCellClick);
+            });
+            
+            restartBtn.addEventListener('click', restartGame);
+        });
+    </script>
+</body>
+</html>
