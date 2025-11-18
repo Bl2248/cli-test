@@ -1,0 +1,1 @@
+for ((i=0; i<8; i++)); do for ((j=0; j<8; j++)); do if [[ (i -eq 0 && j -ge 2 && j -le 5) || (i -eq 1 && (j -eq 1 || j -eq 6)) || (i -eq 2 && (j -eq 0 || j -eq 7)) || (i -eq 3 && (j -eq 0 || j -eq 7)) || (i -eq 4 && (j -eq 1 || j -eq 6)) || (i -eq 5 && j -ge 2 && j -le 5) ]]; then echo -n "*"; else echo -n " "; fi; done; echo; done
