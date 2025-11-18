@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>井字棋游戏</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    .game-container {
+      text-align: center;
+    }
+
+    .title {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .status {
+      font-size: 1.5em;
+      margin-bottom: 20px;
+      height: 30px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-gap: 10px;
+      margin: 0 auto 20px;
+      max-width: 320px;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      border: 2px solid #333;
+      background-color: white;
+      font-size: 3em;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .cell:hover {
+      background-color: #e0e0e0;
+    }
+
+    .cell.winner {
+      background-color: #aaffaa;
+    }
+
+    .controls {
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1em;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .winning-message {
+      font-size: 1.5em;
+      color: green;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .player-x {
+      color: #ff4d4d;
+    }
+
+    .player-o {
+      color: #4d79ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1 class="title">井字棋游戏</h1>
+    <div class="status">当前玩家: <span id="current-player" class="player-x">X</span></div>
+    <div class="board" id="board">
+      <div class="cell" data-index="0"></div>
+      <div class="cell" data-index="1"></div>
+      <div class="cell" data-index="2"></div>
+      <div class="cell" data-index="3"></div>
+      <div class="cell" data-index="4"></div>
+      <div class="cell" data-index="5"></div>
+      <div class="cell" data-index="6"></div>
+      <div class="cell" data-index="7"></div>
+      <div class="cell" data-index="8"></div>
+    </div>
+    <div id="winning-message" class="winning-message"></div>
+    <div class="controls">
+      <button id="reset-btn">重新开始</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const board = Array(9).fill('');
+      const cells = document.querySelectorAll('.cell');
+      const currentPlayerDisplay = document.getElementById('current-player');
+      const winningMessageDisplay = document.getElementById('winning-message');
+      const resetButton = document.getElementById('reset-btn');
+      let currentPlayer = 'X';
+      let gameActive = true;
+
+      // 获胜组合
+      const winPatterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // 横向
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // 纵向
+        [0, 4, 8], [2, 4, 6]             // 对角线
+      ];
+
+      // 检查获胜条件
+      function checkWinner() {
+        for (const pattern of winPatterns) {
+          const [a, b, c] = pattern;
+          if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+            // 标记获胜格子
+            cells[a].classList.add('winner');
+            cells[b].classList.add('winner');
+            cells[c].classList.add('winner');
+            return board[a];
+          }
+        }
+        
+        // 检查平局
+        if (!board.includes('')) {
+          return 'tie';
+        }
+        
+        return null;
+      }
+
+      // 更新游戏状态
+      function updateGameStatus() {
+        const winner = checkWinner();
+        
+        if (winner) {
+          gameActive = false;
+          if (winner === 'tie') {
+            winningMessageDisplay.textContent = '平局！';
+          } else {
+            winningMessageDisplay.textContent = `玩家 ${winner} 获胜！`;
+            currentPlayerDisplay.textContent = winner;
+            currentPlayerDisplay.className = `player-${winner.toLowerCase()}`;
+          }
+        } else {
+          // 切换玩家
+          currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+          currentPlayerDisplay.textContent = currentPlayer;
+          currentPlayerDisplay.className = `player-${currentPlayer.toLowerCase()}`;
+        }
+      }
+
+      // 处理玩家点击
+      function handleCellClick(e) {
+        const index = parseInt(e.target.getAttribute('data-index'));
+        
+        if (board[index] || !gameActive) {
+          return; // 格子已被占用或游戏已结束
+        }
+        
+        // 更新棋盘状态
+        board[index] = currentPlayer;
+        e.target.textContent = currentPlayer;
+        
+        // 更新游戏状态
+        updateGameStatus();
+      }
+
+      // 重置游戏
+      function resetGame() {
+        board.fill('');
+        cells.forEach(cell => {
+          cell.textContent = '';
+          cell.classList.remove('winner');
+        });
+        currentPlayer = 'X';
+        gameActive = true;
+        currentPlayerDisplay.textContent = currentPlayer;
+        currentPlayerDisplay.className = 'player-x';
+        winningMessageDisplay.textContent = '';
+      }
+
+      // 为每个格子添加点击事件
+      cells.forEach(cell => {
+        cell.addEventListener('click', handleCellClick);
+      });
+
+      // 重置按钮事件
+      resetButton.addEventListener('click', resetGame);
+    });
+  </script>
+</body>
+</html>
