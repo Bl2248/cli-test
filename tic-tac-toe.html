@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>井字棋游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        
+        .game-container {
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            margin: 20px 0;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin: 0 auto;
+        }
+        
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #fff;
+            border: 2px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .reset-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .reset-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .winning-cell {
+            background-color: #aaffaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>井字棋游戏</h1>
+        <div class="status" id="status">玩家 X 的回合</div>
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <button class="reset-btn" id="reset">重新开始</button>
+    </div>
+
+    <script>
+        // 井字棋游戏逻辑
+        document.addEventListener('DOMContentLoaded', () => {
+            // 获取DOM元素
+            const status = document.getElementById('status');
+            const resetBtn = document.getElementById('reset');
+            const cells = document.querySelectorAll('.cell');
+            
+            // 游戏状态变量
+            let currentPlayer = 'X';      // 当前玩家
+            let gameActive = true;        // 游戏是否进行中
+            let gameState = ['', '', '', '', '', '', '', '', ''];  // 游戏板状态
+            
+            // 获胜条件：所有可能的连线组合
+            const winningConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // 横向连线
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // 纵向连线
+                [0, 4, 8], [2, 4, 6]             // 对角线连线
+            ];
+            
+            // 处理格子点击事件
+            const handleCellClick = (e) => {
+                const cell = e.target;
+                const index = parseInt(cell.getAttribute('data-index'));
+                
+                // 检查点击是否有效（格子未被占用且游戏进行中）
+                if (gameState[index] !== '' || !gameActive) {
+                    return;
+                }
+                
+                // 更新游戏状态和界面
+                gameState[index] = currentPlayer;
+                cell.textContent = currentPlayer;
+                
+                // 检查游戏结果
+                checkResult();
+            };
+            
+            // 检查游戏结果（获胜或平局）
+            const checkResult = () => {
+                let roundWon = false;
+                let winningCombination = [];
+                
+                // 遍历所有获胜条件，检查是否有玩家获胜
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const [a, b, c] = winningConditions[i];
+                    if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+                        roundWon = true;
+                        winningCombination = winningConditions[i];
+                        break;
+                    }
+                }
+                
+                // 如果有玩家获胜
+                if (roundWon) {
+                    status.textContent = `玩家 ${currentPlayer} 获胜!`;
+                    gameActive = false;
+                    
+                    // 高亮显示获胜的格子
+                    winningCombination.forEach(index => {
+                        cells[index].classList.add('winning-cell');
+                    });
+                    
+                    return;
+                }
+                
+                // 检查是否平局（游戏板已满）
+                if (!gameState.includes('')) {
+                    status.textContent = '平局!';
+                    gameActive = false;
+                    return;
+                }
+                
+                // 切换到下一个玩家
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                status.textContent = `玩家 ${currentPlayer} 的回合`;
+            };
+            
+            // 重置游戏
+            const resetGame = () => {
+                currentPlayer = 'X';
+                gameActive = true;
+                gameState = ['', '', '', '', '', '', '', '', ''];
+                status.textContent = `玩家 X 的回合`;
+                
+                // 清空所有格子并移除高亮样式
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.classList.remove('winning-cell');
+                });
+            };
+            
+            // 为每个格子添加点击事件监听器
+            cells.forEach(cell => {
+                cell.addEventListener('click', handleCellClick);
+            });
+            
+            // 为重置按钮添加点击事件监听器
+            resetBtn.addEventListener('click', resetGame);
+            
+            // 游戏初始化完成
+            console.log('井字棋游戏已加载完成');
+        });
+    </script>
+</body>
+</html>
