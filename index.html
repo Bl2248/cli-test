@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>井字棋游戏</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-gap: 5px;
+      width: 200px;
+      height: 200px;
+      margin: 20px auto;
+      border: 2px solid black;
+      background-color: #333;
+    }
+
+    .square {
+      background-color: white;
+      border: 1px solid #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .square:hover {
+      background-color: #e0e0e0;
+    }
+
+    .status {
+      font-size: 20px;
+      margin-bottom: 15px;
+    }
+
+    .reset-btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .reset-btn:hover {
+      background-color: #45a049;
+    }
+
+    .winning-cell {
+      background-color: #aaffaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>井字棋游戏</h1>
+    <div class="status" id="status">玩家 X 的回合</div>
+    <div class="board" id="board">
+      <div class="square" data-index="0"></div>
+      <div class="square" data-index="1"></div>
+      <div class="square" data-index="2"></div>
+      <div class="square" data-index="3"></div>
+      <div class="square" data-index="4"></div>
+      <div class="square" data-index="5"></div>
+      <div class="square" data-index="6"></div>
+      <div class="square" data-index="7"></div>
+      <div class="square" data-index="8"></div>
+    </div>
+    <button class="reset-btn" id="reset">重新开始</button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const board = Array(9).fill('');
+      const squares = document.querySelectorAll('.square');
+      const statusDisplay = document.getElementById('status');
+      const resetButton = document.getElementById('reset');
+      
+      let currentPlayer = 'X';
+      let gameActive = true;
+      let winningCells = [];
+
+      const winningConditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // 行
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // 列
+        [0, 4, 8], [2, 4, 6]             // 对角线
+      ];
+
+      const handleCellClick = (e) => {
+        const cell = e.target;
+        const cellIndex = parseInt(cell.getAttribute('data-index'));
+
+        // 检查是否可以点击（空格）
+        if (board[cellIndex] !== '' || !gameActive) {
+          return;
+        }
+
+        // 更新棋盘和界面
+        board[cellIndex] = currentPlayer;
+        cell.textContent = currentPlayer;
+        cell.style.color = currentPlayer === 'X' ? '#09C372' : '#498AFB';
+
+        // 检查胜利条件
+        const winResult = checkWin();
+        if (winResult) {
+          statusDisplay.textContent = `玩家 ${currentPlayer} 获胜！`;
+          gameActive = false;
+          highlightWinningCells();
+          return;
+        }
+
+        // 检查平局
+        if (!board.includes('')) {
+          statusDisplay.textContent = '平局！';
+          gameActive = false;
+          return;
+        }
+
+        // 切换玩家
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        statusDisplay.textContent = `玩家 ${currentPlayer} 的回合`;
+      };
+
+      const checkWin = () => {
+        for (const condition of winningConditions) {
+          const [a, b, c] = condition;
+          if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+            winningCells = condition;
+            return true;
+          }
+        }
+        return false;
+      };
+
+      const highlightWinningCells = () => {
+        for (const index of winningCells) {
+          squares[index].classList.add('winning-cell');
+        }
+      };
+
+      const resetGame = () => {
+        board.fill('');
+        squares.forEach(cell => {
+          cell.textContent = '';
+          cell.classList.remove('winning-cell');
+        });
+        currentPlayer = 'X';
+        gameActive = true;
+        statusDisplay.textContent = `玩家 X 的回合`;
+      };
+
+      // 为所有格子添加点击事件监听器
+      squares.forEach((cell, index) => {
+        cell.addEventListener('click', handleCellClick);
+      });
+
+      // 为重置按钮添加点击事件监听器
+      resetButton.addEventListener('click', resetGame);
+    });
+  </script>
+</body>
+</html>
