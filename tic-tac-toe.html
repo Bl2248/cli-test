@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>井字棋游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        
+        .game-container {
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            font-size: 20px;
+            margin-bottom: 20px;
+            height: 30px;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin: 0 auto;
+        }
+        
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #fff;
+            border: 2px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .cell.winner {
+            background-color: #aaffaa;
+        }
+        
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>井字棋游戏</h1>
+        <div class="status" id="status">玩家 X 的回合</div>
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <button id="restart">重新开始</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const board = document.getElementById('board');
+            const status = document.getElementById('status');
+            const restartBtn = document.getElementById('restart');
+            const cells = document.querySelectorAll('.cell');
+            
+            let currentPlayer = 'X';
+            let gameActive = true;
+            let gameState = ['', '', '', '', '', '', '', '', ''];
+            
+            const winningConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // 水平线
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // 垂直线
+                [0, 4, 8], [2, 4, 6]             // 对角线
+            ];
+            
+            const handleCellClick = (e) => {
+                const cell = e.target;
+                const index = parseInt(cell.getAttribute('data-index'));
+                
+                // 检查是否有效点击
+                if (gameState[index] !== '' || !gameActive) {
+                    return;
+                }
+                
+                // 更新游戏状态
+                gameState[index] = currentPlayer;
+                cell.textContent = currentPlayer;
+                
+                // 检查胜利条件
+                checkWin();
+            };
+            
+            const checkWin = () => {
+                let roundWon = false;
+                let winLine = [];
+                
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const [a, b, c] = winningConditions[i];
+                    if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+                        roundWon = true;
+                        winLine = winningConditions[i];
+                        break;
+                    }
+                }
+                
+                if (roundWon) {
+                    status.textContent = `玩家 ${currentPlayer} 获胜!`;
+                    gameActive = false;
+                    
+                    // 高亮获胜位置
+                    winLine.forEach(index => {
+                        cells[index].classList.add('winner');
+                    });
+                    return;
+                }
+                
+                // 检查平局
+                if (!gameState.includes('')) {
+                    status.textContent = '平局!';
+                    gameActive = false;
+                    return;
+                }
+                
+                // 切换玩家
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                status.textContent = `玩家 ${currentPlayer} 的回合`;
+            };
+            
+            const restartGame = () => {
+                currentPlayer = 'X';
+                gameActive = true;
+                gameState = ['', '', '', '', '', '', '', '', ''];
+                status.textContent = `玩家 X 的回合`;
+                
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.classList.remove('winner');
+                });
+            };
+            
+            // 为每个单元格添加点击事件
+            cells.forEach(cell => {
+                cell.addEventListener('click', handleCellClick);
+            });
+            
+            // 为重启按钮添加事件
+            restartBtn.addEventListener('click', restartGame);
+        });
+    </script>
+</body>
+</html>
