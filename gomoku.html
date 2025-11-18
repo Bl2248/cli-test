@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋 (Five in a Row)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .game-info {
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            background-color: #e8c48e;
+            border: 2px solid #8b4513;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #8b4513;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .cell:hover::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .stone {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 2;
+        }
+        
+        .black {
+            background: radial-gradient(circle at 30% 30%, #000, #333);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .controls {
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .win-message {
+            font-size: 24px;
+            font-weight: bold;
+            color: #d32f2f;
+            margin-top: 15px;
+            height: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>五子棋 (Five in a Row)</h1>
+    <div class="game-info">Current Player: <span id="current-player">Black</span></div>
+    <div class="win-message" id="win-message"></div>
+    <div class="board" id="board"></div>
+    <div class="controls">
+        <button id="reset-btn">Reset Game</button>
+    </div>
+
+    <script>
+        class GomokuGame {
+            constructor() {
+                this.boardSize = 15;
+                this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
+                this.currentPlayer = 1; // 1 for black, 2 for white
+                this.gameOver = false;
+                this.createBoard();
+                this.attachEventListeners();
+            }
+            
+            createBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                
+                for (let row = 0; row < this.boardSize; row++) {
+                    for (let col = 0; col < this.boardSize; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        boardElement.appendChild(cell);
+                    }
+                }
+            }
+            
+            attachEventListeners() {
+                const boardElement = document.getElementById('board');
+                const resetBtn = document.getElementById('reset-btn');
+                
+                boardElement.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('cell') && !this.gameOver) {
+                        const row = parseInt(e.target.dataset.row);
+                        const col = parseInt(e.target.dataset.col);
+                        this.makeMove(row, col);
+                    }
+                });
+                
+                resetBtn.addEventListener('click', () => {
+                    this.resetGame();
+                });
+            }
+            
+            makeMove(row, col) {
+                if (this.board[row][col] !== 0 || this.gameOver) return;
+                
+                // Place stone
+                this.board[row][col] = this.currentPlayer;
+                
+                // Update UI
+                const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                const stone = document.createElement('div');
+                stone.className = `stone ${this.currentPlayer === 1 ? 'black' : 'white'}`;
+                cell.appendChild(stone);
+                
+                // Check for win
+                if (this.checkWin(row, col)) {
+                    this.gameOver = true;
+                    const winner = this.currentPlayer === 1 ? 'Black' : 'White';
+                    document.getElementById('win-message').textContent = `${winner} wins!`;
+                    return;
+                }
+                
+                // Switch player
+                this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+                document.getElementById('current-player').textContent = this.currentPlayer === 1 ? 'Black' : 'White';
+            }
+            
+            checkWin(row, col) {
+                const player = this.board[row][col];
+                
+                // Check all four directions: horizontal, vertical, diagonal1, diagonal2
+                const directions = [
+                    [[0, 1], [0, -1]],   // horizontal
+                    [[1, 0], [-1, 0]],   // vertical
+                    [[1, 1], [-1, -1]],  // diagonal \
+                    [[1, -1], [-1, 1]]   // diagonal /
+                ];
+                
+                for (const [dir1, dir2] of directions) {
+                    let count = 1; // Count the current stone
+                    
+                    // Check in direction 1
+                    let r = row + dir1[0];
+                    let c = col + dir1[1];
+                    while (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize && this.board[r][c] === player) {
+                        count++;
+                        r += dir1[0];
+                        c += dir1[1];
+                    }
+                    
+                    // Check in direction 2
+                    r = row + dir2[0];
+                    c = col + dir2[1];
+                    while (r >= 0 && r < this.boardSize && c >= 0 && c < this.boardSize && this.board[r][c] === player) {
+                        count++;
+                        r += dir2[0];
+                        c += dir2[1];
+                    }
+                    
+                    if (count >= 5) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            resetGame() {
+                this.board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(0));
+                this.currentPlayer = 1;
+                this.gameOver = false;
+                document.getElementById('current-player').textContent = 'Black';
+                document.getElementById('win-message').textContent = '';
+                this.createBoard();
+            }
+        }
+        
+        // Start the game when the page loads
+        window.onload = () => {
+            new GomokuGame();
+        };
+    </script>
+</body>
+</html>
