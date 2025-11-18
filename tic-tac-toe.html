@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        
+        .container {
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin: 20px auto;
+        }
+        
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #fff;
+            border: 2px solid #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .status {
+            font-size: 1.2rem;
+            margin: 15px 0;
+            height: 30px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+        <div class="status" id="status">Player X's turn</div>
+        <div class="game-board" id="game-board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <button id="reset-btn">Reset Game</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const board = Array(9).fill('');
+            const cells = document.querySelectorAll('.cell');
+            const statusDisplay = document.getElementById('status');
+            const resetButton = document.getElementById('reset-btn');
+            let currentPlayer = 'X';
+            let gameActive = true;
+
+            const winningConditions = [
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6]
+            ];
+
+            function handleCellClick(e) {
+                const cell = e.target;
+                const index = parseInt(cell.getAttribute('data-index'));
+
+                if (board[index] !== '' || !gameActive) {
+                    return;
+                }
+
+                board[index] = currentPlayer;
+                cell.textContent = currentPlayer;
+
+                if (checkWin()) {
+                    statusDisplay.textContent = `Player ${currentPlayer} wins!`;
+                    gameActive = false;
+                    return;
+                }
+
+                if (checkDraw()) {
+                    statusDisplay.textContent = 'Game ended in a draw!';
+                    gameActive = false;
+                    return;
+                }
+
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                statusDisplay.textContent = `Player ${currentPlayer}'s turn`;
+            }
+
+            function checkWin() {
+                for (let condition of winningConditions) {
+                    const [a, b, c] = condition;
+                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function checkDraw() {
+                return board.every(cell => cell !== '');
+            }
+
+            function resetGame() {
+                board.fill('');
+                cells.forEach(cell => cell.textContent = '');
+                currentPlayer = 'X';
+                gameActive = true;
+                statusDisplay.textContent = `Player ${currentPlayer}'s turn`;
+            }
+
+            cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+            resetButton.addEventListener('click', resetGame);
+        });
+    </script>
+</body>
+</html>
