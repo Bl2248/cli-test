@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>井字棋游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .status {
+            font-size: 20px;
+            margin-bottom: 20px;
+            height: 30px;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 5px;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+        
+        .square {
+            background-color: #fff;
+            border: 2px solid #333;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .square:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .square:disabled {
+            cursor: not-allowed;
+        }
+        
+        .controls {
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .winning-square {
+            background-color: #8eff8e;
+        }
+    </style>
+</head>
+<body>
+    <h1>井字棋游戏</h1>
+    <div class="game-container">
+        <div class="status" id="status">当前玩家: X</div>
+        <div class="board" id="board">
+            <button class="square" data-index="0"></button>
+            <button class="square" data-index="1"></button>
+            <button class="square" data-index="2"></button>
+            <button class="square" data-index="3"></button>
+            <button class="square" data-index="4"></button>
+            <button class="square" data-index="5"></button>
+            <button class="square" data-index="6"></button>
+            <button class="square" data-index="7"></button>
+            <button class="square" data-index="8"></button>
+        </div>
+        <div class="controls">
+            <button id="restart">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const squares = document.querySelectorAll('.square');
+            const statusDisplay = document.getElementById('status');
+            const restartButton = document.getElementById('restart');
+            
+            let gameActive = true;
+            let currentPlayer = 'X';
+            let gameState = Array(9).fill('');
+            
+            // 获胜组合
+            const winningConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // 横向
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // 纵向
+                [0, 4, 8], [2, 4, 6]             // 对角线
+            ];
+            
+            // 状态消息
+            const winningMessage = () => `玩家 ${currentPlayer} 获胜!`;
+            const drawMessage = () => `平局!`;
+            const currentPlayerTurn = () => `当前玩家: ${currentPlayer}`;
+            
+            // 初始化游戏状态
+            statusDisplay.innerHTML = currentPlayerTurn();
+            
+            // 处理方块点击
+            function handleSquareClick(e) {
+                const clickedSquare = e.target;
+                const clickedSquareIndex = parseInt(clickedSquare.getAttribute('data-index'));
+                
+                // 检查是否可以落子
+                if (gameState[clickedSquareIndex] !== '' || !gameActive) {
+                    return;
+                }
+                
+                // 更新游戏状态和界面
+                gameState[clickedSquareIndex] = currentPlayer;
+                clickedSquare.innerHTML = currentPlayer;
+                
+                // 检查胜负
+                resultValidation();
+            }
+            
+            // 验证结果
+            function resultValidation() {
+                let roundWon = false;
+                let winningCombo = [];
+                
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const [a, b, c] = winningConditions[i];
+                    const valA = gameState[a];
+                    const valB = gameState[b];
+                    const valC = gameState[c];
+                    
+                    if (valA === '' || valB === '' || valC === '') {
+                        continue;
+                    }
+                    
+                    if (valA === valB && valB === valC) {
+                        roundWon = true;
+                        winningCombo = winningConditions[i];
+                        break;
+                    }
+                }
+                
+                if (roundWon) {
+                    statusDisplay.innerHTML = winningMessage();
+                    gameActive = false;
+                    
+                    // 高亮获胜方块
+                    winningCombo.forEach(index => {
+                        squares[index].classList.add('winning-square');
+                    });
+                    return;
+                }
+                
+                // 检查是否平局
+                if (!gameState.includes('')) {
+                    statusDisplay.innerHTML = drawMessage();
+                    gameActive = false;
+                    return;
+                }
+                
+                // 切换玩家
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                statusDisplay.innerHTML = currentPlayerTurn();
+            }
+            
+            // 重置游戏
+            function restartGame() {
+                gameActive = true;
+                currentPlayer = 'X';
+                gameState = Array(9).fill('');
+                statusDisplay.innerHTML = currentPlayerTurn();
+                
+                squares.forEach(square => {
+                    square.innerHTML = '';
+                    square.classList.remove('winning-square');
+                });
+            }
+            
+            // 添加事件监听器
+            squares.forEach(square => square.addEventListener('click', handleSquareClick));
+            restartButton.addEventListener('click', restartGame);
+        });
+    </script>
+</body>
+</html>
